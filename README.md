@@ -1,28 +1,8 @@
-\# JavaScript 语法解析器
+ # JavaScript 语法解析器
 
 
 
-一个基于 \*\*C 语言\*\* 的 JavaScript 语法解析器，使用 \*\*re2c\*\* 和 \*\*bison\*\* 构建，支持 \*\*自动分号插入（ASI）机制\*\*。
-
-
-
----
-
-
-
-\## 🚀 项目特性
-
-
-
-\* ✅ 完整的 JavaScript 语法解析
-
-\* ✅ 自动分号插入（ASI）机制
-
-\* ✅ 支持 ECMAScript 基本语法结构
-
-\* ✅ 详细的语法错误报告
-
-\* ✅ 丰富的测试用例覆盖
+一个基于 **C 语言** 的 JavaScript 语法解析器，使用 **re2c** 和 **bison** 构建，支持 **自动分号插入（ASI）机制**。
 
 
 
@@ -30,11 +10,31 @@
 
 
 
-\## 🧩 支持的语言特性
+## 🚀 项目特性
 
 
 
-\### 变量声明
+* ✅ 完整的 JavaScript 语法解析
+
+* ✅ 自动分号插入（ASI）机制
+
+* ✅ 支持 ECMAScript 基本语法结构
+
+* ✅ 详细的语法错误报告
+
+* ✅ 丰富的测试用例覆盖
+
+
+
+---
+
+
+
+## 🧩 支持的语言特性
+
+
+
+### 变量声明
 
 
 
@@ -50,7 +50,7 @@ const z = 30;
 
 
 
-\### 函数
+### 函数
 
 
 
@@ -66,7 +66,7 @@ function add(a, b) {
 
 
 
-\### 控制流
+### 控制流
 
 
 
@@ -82,7 +82,7 @@ for (let i = 0; i < 10; i++) { /\* ... \*/ }
 
 
 
-\### 表达式
+### 表达式
 
 
 
@@ -98,7 +98,7 @@ x === y \&\& y !== z
 
 
 
-\### ASI 机制
+### ASI 机制
 
 
 
@@ -120,7 +120,7 @@ console.log("Hello")
 
 
 
-\## 📁 项目结构
+## 📁 项目结构
 
 
 
@@ -154,23 +154,23 @@ js-parser/
 
 
 
-\## ⚙️ 构建要求
+## ⚙️ 构建要求
 
 
 
-\### 系统要求
+### 系统要求
 
 
 
-\* Linux（推荐使用 WSL / Ubuntu）
+* Linux（推荐使用 WSL / Ubuntu）
 
-\* gcc 编译器
+* gcc 编译器
 
-\* make 构建工具
+* make 构建工具
 
 
 
-\### 依赖工具安装
+### 依赖工具安装
 
 
 
@@ -188,29 +188,29 @@ sudo apt install re2c bison build-essential
 
 
 
-\## 🧱 构建与安装
+## 🧱 构建与安装
 
 
 
-\### 手动构建
+### 手动构建
 
 
 
 ```bash
 
-\# 生成词法分析器
+# 生成词法分析器
 
 re2c -o lexer.c lexer.l
 
 
 
-\# 生成语法分析器
+# 生成语法分析器
 
 bison -d -o parser.c parser.y
 
 
 
-\# 编译可执行文件
+# 编译可执行文件
 
 gcc -Wall -Wextra -g -o js-parser main.c lexer.c parser.c -lm
 
@@ -218,7 +218,7 @@ gcc -Wall -Wextra -g -o js-parser main.c lexer.c parser.c -lm
 
 
 
-\### 快速构建（推荐）
+### 快速构建（推荐）
 
 
 
@@ -236,11 +236,11 @@ make
 
 
 
-\## 💡 使用方法
+## 💡 使用方法
 
 
 
-\### 基本用法
+### 基本用法
 
 
 
@@ -252,25 +252,25 @@ make
 
 
 
-\### 示例
+### 示例
 
 
 
 ```bash
 
-\# 解析单个文件
+# 解析单个文件
 
 ./js-parser test.js
 
 
 
-\# 解析测试用例
+# 解析测试用例
 
 ./js-parser test\_files/simple.js
 
 
 
-\# 手动运行特定测试
+# 手动运行特定测试
 
 ./js-parser test\_files/asi\_test.js
 
@@ -284,11 +284,11 @@ make
 
 
 
-\## 🧾 输出说明
+## 🧾 输出说明
 
 
 
-\### 成功解析
+### 成功解析
 
 
 
@@ -302,7 +302,7 @@ Parsing JavaScript file: example.js
 
 
 
-\### 语法错误
+### 语法错误
 
 
 
@@ -324,7 +324,7 @@ PARSER:                     ^
 
 
 
-\### 调试信息
+### 调试信息
 
 
 
@@ -350,39 +350,39 @@ PARSER: ASI - Automatically inserted semicolon after statement
 
 
 
-\## ⚙️ 技术细节
+## ⚙️ 技术细节
 
 
 
-\### 词法分析器（`lexer.l`）
+### 词法分析器（`lexer.l`）
 
 
 
-\* 使用 \*\*re2c\*\* 生成高效的词法分析器
+* 使用 **re2c** 生成高效的词法分析器
 
-\* 支持 Unicode 字符
+* 支持 Unicode 字符
 
-\* 处理注释、字符串、数字字面量
+* 处理注释、字符串、数字字面量
 
-\* 识别 JavaScript 关键字和运算符
-
-
-
-\### 语法分析器（`parser.y`）
+* 识别 JavaScript 关键字和运算符
 
 
 
-\* 使用 \*\*bison\*\* 生成 LALR 语法分析器
-
-\* 实现完整的表达式优先级与结合性
-
-\* 支持自动分号插入机制
-
-\* 提供详细的错误恢复与报告
+### 语法分析器（`parser.y`）
 
 
 
-\### ASI 实现规则
+* 使用 **bison** 生成 LALR 语法分析器
+
+* 实现完整的表达式优先级与结合性
+
+* 支持自动分号插入机制
+
+* 提供详细的错误恢复与报告
+
+
+
+### ASI 实现规则
 
 
 
@@ -390,11 +390,11 @@ PARSER: ASI - Automatically inserted semicolon after statement
 
 
 
-1\. 行结束符后且语法不允许继续时
+1. 行结束符后且语法不允许继续时
 
-2\. `}` 符号前
+2. `}` 符号前
 
-3\. 程序结束时
+3. 程序结束时
 
 
 
@@ -402,7 +402,7 @@ PARSER: ASI - Automatically inserted semicolon after statement
 
 
 
-\## 🧪 测试覆盖
+## 🧪 测试覆盖
 
 
 
@@ -410,29 +410,11 @@ PARSER: ASI - Automatically inserted semicolon after statement
 
 
 
-\* \*\*基础语法\*\*：变量、函数、控制流
+* **基础语法**：变量、函数、控制流
 
-\* \*\*ASI 场景\*\*：各种分号省略情况
+* **ASI 场景**：各种分号省略情况
 
-\* \*\*错误情况\*\*：语法错误检测
-
-
-
----
-
-
-
-\## ⚠️ 限制与注意事项
-
-
-
-\* 当前版本不构建完整的 AST（抽象语法树）
-
-\* 专注于语法验证而非代码执行
-
-\* 某些高级 ES6+ 特性暂不支持
-
-\* 错误恢复机制较为基础
+* **错误情况**：语法错误检测
 
 
 
@@ -440,37 +422,17 @@ PARSER: ASI - Automatically inserted semicolon after statement
 
 
 
-\## 🧭 开发指南
+## ⚠️ 限制与注意事项
 
 
 
-\### 添加新的语法特性
+* 当前版本不构建完整的 AST（抽象语法树）
 
+* 专注于语法验证而非代码执行
 
+* 某些高级 ES6+ 特性暂不支持
 
-1\. 在 `lexer.l` 中添加新的词法规则
-
-2\. 在 `parser.y` 中添加对应语法规则
-
-3\. 更新优先级和结合性定义
-
-4\. 添加测试用例
-
-5\. 运行测试验证
-
-
-
-\### 调试技巧
-
-
-
-\* 使用 `make clean \&\& make` 重新构建
-
-\* 查看详细的 LEXER 和 PARSER 输出
-
-\* 使用 `-g` 编译启用调试信息
-
-\* 检查 bison 的冲突警告
+* 错误恢复机制较为基础
 
 
 
@@ -478,7 +440,45 @@ PARSER: ASI - Automatically inserted semicolon after statement
 
 
 
-\## 📜 许可证
+## 🧭 开发指南
+
+
+
+### 添加新的语法特性
+
+
+
+1. 在 `lexer.l` 中添加新的词法规则
+
+2. 在 `parser.y` 中添加对应语法规则
+
+3. 更新优先级和结合性定义
+
+4. 添加测试用例
+
+5. 运行测试验证
+
+
+
+### 调试技巧
+
+
+
+* 使用 `make clean && make` 重新构建
+
+* 查看详细的 LEXER 和 PARSER 输出
+
+* 使用 `-g` 编译启用调试信息
+
+* 检查 bison 的冲突警告
+
+
+
+---
+
+
+
+## 📜 许可证
 
 
 
@@ -490,11 +490,11 @@ PARSER: ASI - Automatically inserted semicolon after statement
 
 
 
-\## 🤝 贡献
+## 🤝 贡献
 
 
 
-欢迎提交 \*\*Issue\*\* 或 \*\*Pull Request\*\* 来改进本解析器。
+欢迎提交 **Issue** 或 **Pull Request** 来改进本解析器。
 
 
 
@@ -502,15 +502,15 @@ PARSER: ASI - Automatically inserted semicolon after statement
 
 
 
-\## 🔗 相关资源
+## 🔗 相关资源
 
 
 
-\* \[ECMAScript 规范](https://tc39.es/ecma262/)
+* [ECMAScript 规范](https://tc39.es/ecma262/)
 
-\* \[re2c 文档](https://re2c.org)
+* [re2c 文档](https://re2c.org)
 
-\* \[Bison 文档](https://www.gnu.org/software/bison/)
+* [Bison 文档](https://www.gnu.org/software/bison/)
 
 
 
@@ -520,9 +520,6 @@ PARSER: ASI - Automatically inserted semicolon after statement
 
 ---
 
-
-
-是否希望我将这个优化后的版本导出为新的 `.md` 文件供你下载？
 
 
 
