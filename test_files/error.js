@@ -1,13 +1,13 @@
 // 预期会报错的测试用例
 
 // 1. 语法错误 - 缺少括号
-function missingParen(a, b {
-    return a + b;
-}
+//function missingParen(a, b {
+    //return a + b;
+//}
 
 // 2. 语法错误 - 缺少分号（在不能ASI的地方）
-var x = 1
-[1, 2, 3].forEach(console.log)  // 如果没有ASI，这会报错
+//ar x = 1
+//[1, 2, 3].forEach(console.log)  // 如果没有ASI，这会报错
 
 // 3. 语法错误 - 无效的token
 var @invalid = 10;

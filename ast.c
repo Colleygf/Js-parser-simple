@@ -1,0 +1,605 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "ast.h"
+
+// 创建标识符节点
+ASTNode* create_identifier(const char* name) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_IDENTIFIER;
+    node->line = 0; // 在实际解析器中应该设置行号
+    node->column = 0; // 和列号
+    node->data.identifier.name = strdup(name);
+    return node;
+}
+
+// 创建数字字面量节点
+ASTNode* create_number(const char* value) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_NUMBER;
+    node->line = 0;
+    node->column = 0;
+    node->data.literal.value = strdup(value);
+    return node;
+}
+
+// 创建字符串字面量节点
+ASTNode* create_string(const char* value) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_STRING;
+    node->line = 0;
+    node->column = 0;
+    node->data.literal.value = strdup(value);
+    return node;
+}
+
+// 创建布尔字面量节点
+ASTNode* create_boolean(int value) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_BOOLEAN;
+    node->line = 0;
+    node->column = 0;
+    node->data.literal.value = strdup(value ? "true" : "false");
+    return node;
+}
+
+// 创建 null 字面量节点
+ASTNode* create_null(void) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_NULL;
+    node->line = 0;
+    node->column = 0;
+    node->data.literal.value = strdup("null");
+    return node;
+}
+
+// 创建 undefined 字面量节点
+ASTNode* create_undefined(void) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_UNDEFINED;
+    node->line = 0;
+    node->column = 0;
+    node->data.literal.value = strdup("undefined");
+    return node;
+}
+
+// 创建二元表达式节点
+ASTNode* create_binary_expression(OperatorType op, ASTNode* left, ASTNode* right) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_BINARY_OP;
+    node->line = 0;
+    node->column = 0;
+    node->data.binary_expr.op = op;
+    node->data.binary_expr.left = left;
+    node->data.binary_expr.right = right;
+    return node;
+}
+
+// 创建一元表达式节点
+ASTNode* create_unary_expression(OperatorType op, ASTNode* operand) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_UNARY_OP;
+    node->line = 0;
+    node->column = 0;
+    node->data.unary_expr.op = op;
+    node->data.unary_expr.operand = operand;
+    return node;
+}
+
+// 创建赋值表达式节点
+ASTNode* create_assignment_expression(OperatorType op, ASTNode* left, ASTNode* right) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_ASSIGNMENT;
+    node->line = 0;
+    node->column = 0;
+    node->data.assignment.op = op;
+    node->data.assignment.left = left;
+    node->data.assignment.right = right;
+    return node;
+}
+
+// 创建调用表达式节点
+ASTNode* create_call_expression(ASTNode* callee, ASTNode** arguments, int argument_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_CALL_EXPRESSION;
+    node->line = 0;
+    node->column = 0;
+    node->data.call_expr.callee = callee;
+    node->data.call_expr.arguments = arguments;
+    node->data.call_expr.argument_count = argument_count;
+    return node;
+}
+
+// 创建成员表达式节点
+ASTNode* create_member_expression(ASTNode* object, ASTNode* property, int computed) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_MEMBER_EXPRESSION;
+    node->line = 0;
+    node->column = 0;
+    node->data.member_expr.object = object;
+    node->data.member_expr.property = property;
+    node->data.member_expr.computed = computed;
+    return node;
+}
+
+// 创建条件表达式节点
+ASTNode* create_conditional_expression(ASTNode* test, ASTNode* consequent, ASTNode* alternate) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_CONDITIONAL_EXPRESSION;
+    node->line = 0;
+    node->column = 0;
+    node->data.conditional_expr.test = test;
+    node->data.conditional_expr.consequent = consequent;
+    node->data.conditional_expr.alternate = alternate;
+    return node;
+}
+
+// 创建程序节点
+ASTNode* create_program(ASTNode** statements, int statement_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_PROGRAM;
+    node->line = 0;
+    node->column = 0;
+    node->data.program.statements = statements;
+    node->data.program.statement_count = statement_count;
+    return node;
+}
+
+// 创建变量声明节点
+ASTNode* create_variable_declaration(const char* kind, const char* name, ASTNode* init) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_VARIABLE_DECLARATION;
+    node->line = 0;
+    node->column = 0;
+    node->data.variable_decl.kind = strdup(kind);
+    node->data.variable_decl.name = strdup(name);
+    node->data.variable_decl.init = init;
+    return node;
+}
+
+// 创建函数声明节点
+ASTNode* create_function_declaration(const char* name, char** parameters, int parameter_count, ASTNode* body) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_FUNCTION_DECLARATION;
+    node->line = 0;
+    node->column = 0;
+    node->data.function_decl.name = strdup(name);
+    node->data.function_decl.parameters = parameters;
+    node->data.function_decl.parameter_count = parameter_count;
+    node->data.function_decl.body = body;
+    return node;
+}
+
+// 创建表达式语句节点
+ASTNode* create_expression_statement(ASTNode* expression) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_EXPRESSION_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    node->data.expression_stmt.expression = expression;
+    return node;
+}
+
+// 创建块语句节点
+ASTNode* create_block_statement(ASTNode** body, int body_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_BLOCK_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    node->data.block_stmt.body = body;
+    node->data.block_stmt.body_count = body_count;
+    return node;
+}
+
+// 创建 if 语句节点
+ASTNode* create_if_statement(ASTNode* test, ASTNode* consequent, ASTNode* alternate) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_IF_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    node->data.if_stmt.test = test;
+    node->data.if_stmt.consequent = consequent;
+    node->data.if_stmt.alternate = alternate;
+    return node;
+}
+
+// 创建 while 语句节点
+ASTNode* create_while_statement(ASTNode* test, ASTNode* body) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_WHILE_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    node->data.while_stmt.test = test;
+    node->data.while_stmt.body = body;
+    return node;
+}
+
+// 创建 for 语句节点
+ASTNode* create_for_statement(ASTNode* init, ASTNode* test, ASTNode* update, ASTNode* body) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_FOR_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    node->data.for_stmt.init = init;
+    node->data.for_stmt.test = test;
+    node->data.for_stmt.update = update;
+    node->data.for_stmt.body = body;
+    return node;
+}
+
+// 创建 return 语句节点
+ASTNode* create_return_statement(ASTNode* argument) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_RETURN_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    node->data.return_stmt.argument = argument;
+    return node;
+}
+
+// 创建 break 语句节点
+ASTNode* create_break_statement(void) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_BREAK_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    return node;
+}
+
+// 创建 continue 语句节点
+ASTNode* create_continue_statement(void) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_CONTINUE_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    return node;
+}
+
+// 创建空语句节点
+ASTNode* create_empty_statement(void) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_EMPTY_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    return node;
+}
+
+// 释放 AST 节点
+void free_ast(ASTNode* node) {
+    if (!node) return;
+    
+    switch (node->type) {
+        case AST_IDENTIFIER:
+            free(node->data.identifier.name);
+            break;
+            
+        case AST_NUMBER:
+        case AST_STRING:
+        case AST_BOOLEAN:
+        case AST_NULL:
+        case AST_UNDEFINED:
+            if (node->data.literal.value) {
+                free(node->data.literal.value);
+            }
+            break;
+            
+        case AST_BINARY_OP:
+            free_ast(node->data.binary_expr.left);
+            free_ast(node->data.binary_expr.right);
+            break;
+            
+        case AST_UNARY_OP:
+            free_ast(node->data.unary_expr.operand);
+            break;
+            
+        case AST_ASSIGNMENT:
+            free_ast(node->data.assignment.left);
+            free_ast(node->data.assignment.right);
+            break;
+            
+        case AST_CALL_EXPRESSION:
+            free_ast(node->data.call_expr.callee);
+            for (int i = 0; i < node->data.call_expr.argument_count; i++) {
+                free_ast(node->data.call_expr.arguments[i]);
+            }
+            free(node->data.call_expr.arguments);
+            break;
+            
+        case AST_MEMBER_EXPRESSION:
+            free_ast(node->data.member_expr.object);
+            free_ast(node->data.member_expr.property);
+            break;
+            
+        case AST_CONDITIONAL_EXPRESSION:
+            free_ast(node->data.conditional_expr.test);
+            free_ast(node->data.conditional_expr.consequent);
+            free_ast(node->data.conditional_expr.alternate);
+            break;
+            
+        case AST_PROGRAM:
+            for (int i = 0; i < node->data.program.statement_count; i++) {
+                free_ast(node->data.program.statements[i]);
+            }
+            free(node->data.program.statements);
+            break;
+            
+        case AST_VARIABLE_DECLARATION:
+            free(node->data.variable_decl.kind);
+            free(node->data.variable_decl.name);
+            free_ast(node->data.variable_decl.init);
+            break;
+            
+        case AST_FUNCTION_DECLARATION:
+            free(node->data.function_decl.name);
+            for (int i = 0; i < node->data.function_decl.parameter_count; i++) {
+                free(node->data.function_decl.parameters[i]);
+            }
+            free(node->data.function_decl.parameters);
+            free_ast(node->data.function_decl.body);
+            break;
+            
+        case AST_EXPRESSION_STATEMENT:
+            free_ast(node->data.expression_stmt.expression);
+            break;
+            
+        case AST_BLOCK_STATEMENT:
+            for (int i = 0; i < node->data.block_stmt.body_count; i++) {
+                free_ast(node->data.block_stmt.body[i]);
+            }
+            free(node->data.block_stmt.body);
+            break;
+            
+        case AST_IF_STATEMENT:
+            free_ast(node->data.if_stmt.test);
+            free_ast(node->data.if_stmt.consequent);
+            if (node->data.if_stmt.alternate) {
+                free_ast(node->data.if_stmt.alternate);
+            }
+            break;
+            
+        case AST_WHILE_STATEMENT:
+            free_ast(node->data.while_stmt.test);
+            free_ast(node->data.while_stmt.body);
+            break;
+            
+        case AST_FOR_STATEMENT:
+            if (node->data.for_stmt.init) free_ast(node->data.for_stmt.init);
+            if (node->data.for_stmt.test) free_ast(node->data.for_stmt.test);
+            if (node->data.for_stmt.update) free_ast(node->data.for_stmt.update);
+            free_ast(node->data.for_stmt.body);
+            break;
+            
+        case AST_RETURN_STATEMENT:
+            if (node->data.return_stmt.argument) {
+                free_ast(node->data.return_stmt.argument);
+            }
+            break;
+            
+        case AST_BREAK_STATEMENT:
+        case AST_CONTINUE_STATEMENT:
+        case AST_EMPTY_STATEMENT:
+            // 这些节点没有额外数据需要释放
+            break;
+            
+        default:
+            break;
+    }
+    
+    free(node);
+}
+
+// 打印 AST 节点（用于调试）
+void print_ast(ASTNode* node, int indent) {
+    if (!node) return;
+    
+    for (int i = 0; i < indent; i++) {
+        printf("  ");
+    }
+    
+    switch (node->type) {
+        case AST_IDENTIFIER:
+            printf("Identifier: %s\n", node->data.identifier.name);
+            break;
+            
+        case AST_NUMBER:
+            printf("Number: %s\n", node->data.literal.value);
+            break;
+            
+        case AST_STRING:
+            printf("String: \"%s\"\n", node->data.literal.value);
+            break;
+            
+        case AST_BOOLEAN:
+            printf("Boolean: %s\n", node->data.literal.value);
+            break;
+            
+        case AST_NULL:
+            printf("Null\n");
+            break;
+            
+        case AST_UNDEFINED:
+            printf("Undefined\n");
+            break;
+           
+        case AST_BINARY_OP: {
+            const char* op_str;
+            switch (node->data.binary_expr.op) {
+                case OP_ADD: op_str = "+"; break;
+                case OP_SUB: op_str = "-"; break;
+                case OP_MUL: op_str = "*"; break;
+                case OP_DIV: op_str = "/"; break;
+                case OP_MOD: op_str = "%"; break;
+                case OP_EQ: op_str = "=="; break;
+                case OP_NEQ: op_str = "!="; break;
+                case OP_STRICT_EQ: op_str = "==="; break;
+                case OP_STRICT_NEQ: op_str = "!=="; break;
+                case OP_LT: op_str = "<"; break;
+                case OP_LE: op_str = "<="; break;
+                case OP_GT: op_str = ">"; break;
+                case OP_GE: op_str = ">="; break;
+                case OP_AND: op_str = "&&"; break;
+                case OP_OR: op_str = "||"; break;
+                default: op_str = "?"; break;
+            }
+            printf("BinaryOp: %s\n", op_str);
+            print_ast(node->data.binary_expr.left, indent + 1);
+            print_ast(node->data.binary_expr.right, indent + 1);
+            break;
+        }
+            
+        case AST_ASSIGNMENT: {
+            const char* op_str;
+            switch (node->data.assignment.op) {
+                case OP_ASSIGN: op_str = "="; break;
+                case OP_ADD_ASSIGN: op_str = "+="; break;
+                case OP_SUB_ASSIGN: op_str = "-="; break;
+                case OP_MUL_ASSIGN: op_str = "*="; break;
+                case OP_DIV_ASSIGN: op_str = "/="; break;
+                default: op_str = "?"; break;
+            }
+            printf("Assignment: %s\n", op_str);
+            print_ast(node->data.assignment.left, indent + 1);
+            print_ast(node->data.assignment.right, indent + 1);
+            break;
+        }
+            
+        case AST_CALL_EXPRESSION:
+            printf("CallExpression\n");
+            print_ast(node->data.call_expr.callee, indent + 1);
+            for (int i = 0; i < node->data.call_expr.argument_count; i++) {
+                print_ast(node->data.call_expr.arguments[i], indent + 1);
+            }
+            break;
+            
+        case AST_MEMBER_EXPRESSION:
+            printf("MemberExpression (%s)\n", node->data.member_expr.computed ? "computed" : "dot");
+            print_ast(node->data.member_expr.object, indent + 1);
+            print_ast(node->data.member_expr.property, indent + 1);
+            break;
+            
+        case AST_CONDITIONAL_EXPRESSION:
+            printf("ConditionalExpression\n");
+            print_ast(node->data.conditional_expr.test, indent + 1);
+            print_ast(node->data.conditional_expr.consequent, indent + 1);
+            print_ast(node->data.conditional_expr.alternate, indent + 1);
+            break;
+            
+        case AST_PROGRAM:
+            printf("Program\n");
+            for (int i = 0; i < node->data.program.statement_count; i++) {
+                print_ast(node->data.program.statements[i], indent + 1);
+            }
+            break;
+            
+        case AST_VARIABLE_DECLARATION:
+            printf("VariableDeclaration: %s %s\n", node->data.variable_decl.kind, node->data.variable_decl.name);
+            if (node->data.variable_decl.init) {
+                print_ast(node->data.variable_decl.init, indent + 1);
+            }
+            break;
+            
+        case AST_FUNCTION_DECLARATION:
+            printf("FunctionDeclaration: %s\n", node->data.function_decl.name);
+            for (int i = 0; i < node->data.function_decl.parameter_count; i++) {
+                for (int j = 0; j < indent + 1; j++) printf("  ");
+                printf("Parameter: %s\n", node->data.function_decl.parameters[i]);
+            }
+            print_ast(node->data.function_decl.body, indent + 1);
+            break;
+            
+        case AST_EXPRESSION_STATEMENT:
+            printf("ExpressionStatement\n");
+            if (node->data.expression_stmt.expression) {
+                print_ast(node->data.expression_stmt.expression, indent + 1);
+            }
+            break;
+            
+        case AST_BLOCK_STATEMENT:
+            printf("BlockStatement\n");
+            for (int i = 0; i < node->data.block_stmt.body_count; i++) {
+                print_ast(node->data.block_stmt.body[i], indent + 1);
+            }
+            break;
+            
+        case AST_IF_STATEMENT:
+            printf("IfStatement\n");
+            print_ast(node->data.if_stmt.test, indent + 1);
+            print_ast(node->data.if_stmt.consequent, indent + 1);
+            if (node->data.if_stmt.alternate) {
+                print_ast(node->data.if_stmt.alternate, indent + 1);
+            }
+            break;
+            
+        case AST_WHILE_STATEMENT:
+            printf("WhileStatement\n");
+            print_ast(node->data.while_stmt.test, indent + 1);
+            print_ast(node->data.while_stmt.body, indent + 1);
+            break;
+            
+        case AST_FOR_STATEMENT:
+            printf("ForStatement\n");
+            if (node->data.for_stmt.init) print_ast(node->data.for_stmt.init, indent + 1);
+            if (node->data.for_stmt.test) print_ast(node->data.for_stmt.test, indent + 1);
+            if (node->data.for_stmt.update) print_ast(node->data.for_stmt.update, indent + 1);
+            print_ast(node->data.for_stmt.body, indent + 1);
+            break;
+            
+        case AST_RETURN_STATEMENT:
+            printf("ReturnStatement\n");
+            if (node->data.return_stmt.argument) {
+                print_ast(node->data.return_stmt.argument, indent + 1);
+            }
+            break;
+            
+        case AST_BREAK_STATEMENT:
+            printf("BreakStatement\n");
+            break;
+            
+        case AST_CONTINUE_STATEMENT:
+            printf("ContinueStatement\n");
+            break;
+            
+        case AST_EMPTY_STATEMENT:
+            printf("EmptyStatement\n");
+            break;
+
+        case AST_UNARY_OP: {
+            const char* op_str;
+            switch (node->data.unary_expr.op) {
+                case OP_ADD: op_str = "+"; break;
+                case OP_SUB: op_str = "-"; break;
+                case OP_MUL: op_str = "*"; break;
+                case OP_DIV: op_str = "/"; break;
+                case OP_MOD: op_str = "%"; break;
+                case OP_EQ: op_str = "=="; break;
+                case OP_NEQ: op_str = "!="; break;
+                case OP_STRICT_EQ: op_str = "==="; break;
+                case OP_STRICT_NEQ: op_str = "!=="; break;
+                case OP_LT: op_str = "<"; break;
+                case OP_LE: op_str = "<="; break;
+                case OP_GT: op_str = ">"; break;
+                case OP_GE: op_str = ">="; break;
+                case OP_AND: op_str = "&&"; break;
+                case OP_OR: op_str = "||"; break;
+                case OP_ASSIGN: op_str = "="; break;
+                case OP_ADD_ASSIGN: op_str = "+="; break;
+                case OP_SUB_ASSIGN: op_str = "-="; break;
+                case OP_MUL_ASSIGN: op_str = "*="; break;
+                case OP_DIV_ASSIGN: op_str = "/="; break;
+                case OP_PRE_INC: op_str = "++(prefix)"; break;
+                case OP_PRE_DEC: op_str = "--(prefix)"; break;
+                case OP_POST_INC: op_str = "(postfix)++"; break;
+                case OP_POST_DEC: op_str = "(postfix)--"; break;
+                case OP_NOT: op_str = "!"; break;
+                default: op_str = "?"; break;
+            }
+            printf("UnaryOp: %s\n", op_str);
+            print_ast(node->data.unary_expr.operand, indent + 1);
+            break;
+        }
+        default:
+            printf("Unknown AST node type: %d\n", node->type);
+            break;
+    }
+
+}

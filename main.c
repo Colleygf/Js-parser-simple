@@ -2,10 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
+#include "ast.h"
 
 // 声明函数
-int yyparse(void);
+int yyparse(ScannerState *scanner);
 void set_scanner(ScannerState *scanner);
+void yyerror(ScannerState *scanner, const char *s);
+
+// 声明全局 AST 根节点
+extern ASTNode* ast_root;
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -43,10 +48,19 @@ int main(int argc, char *argv[]) {
     
     printf("Parsing JavaScript file: %s\n", argv[1]);
     
-    int result = yyparse();
+    int result = yyparse(&scanner);
     
     if (result == 0) {
         printf("✓ Syntax is valid\n");
+        
+        // 打印 AST
+        if (ast_root) {
+            printf("\n=== Abstract Syntax Tree ===\n");
+            print_ast(ast_root, 0);
+            
+            // 清理 AST
+            free_ast(ast_root);
+        }
     } else {
         printf("✗ Syntax errors found\n");
     }

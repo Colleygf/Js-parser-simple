@@ -108,14 +108,42 @@ extern int yydebug;
     COLON = 309,                   /* COLON  */
     QUESTION = 310,                /* QUESTION  */
     ERROR = 311,                   /* ERROR  */
-    POSTFIX = 312                  /* POSTFIX  */
+    POSTFIX = 312,                 /* POSTFIX  */
+    ASSIGNMENT = 313,              /* ASSIGNMENT  */
+    BITWISE_OR = 314,              /* BITWISE_OR  */
+    BITWISE_XOR = 315,             /* BITWISE_XOR  */
+    BITWISE_AND = 316,             /* BITWISE_AND  */
+    EQUALITY = 317,                /* EQUALITY  */
+    RELATIONAL = 318,              /* RELATIONAL  */
+    SHIFT = 319,                   /* SHIFT  */
+    ADDITIVE = 320,                /* ADDITIVE  */
+    MULTIPLICATIVE = 321,          /* MULTIPLICATIVE  */
+    EXPONENTIAL = 322,             /* EXPONENTIAL  */
+    UNARY = 323,                   /* UNARY  */
+    CALL = 324,                    /* CALL  */
+    PRE_INC = 325,                 /* PRE_INC  */
+    PRE_DEC = 326,                 /* PRE_DEC  */
+    POST_INC = 327,                /* POST_INC  */
+    POST_DEC = 328                 /* POST_DEC  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef int YYSTYPE;
+union YYSTYPE
+{
+#line 24 "parser.y"
+
+    char* str;
+    ASTNode* node;
+    ArgList* arg_list;
+    ParamList* param_list;
+
+#line 144 "parser.h"
+
+};
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -124,7 +152,7 @@ typedef int YYSTYPE;
 extern YYSTYPE yylval;
 
 
-int yyparse (void);
+int yyparse (ScannerState *scanner);
 
 
 #endif /* !YY_YY_PARSER_H_INCLUDED  */

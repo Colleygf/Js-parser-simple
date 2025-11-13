@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "common.h"
+#include "ast.h"           // 添加 ast.h
+#include "parser_types.h"  // 添加 parser_types.h
 
 // 包含 bison 生成的头文件
 #include "parser.h"
@@ -142,34 +144,47 @@ re2c:define:YYCTYPE = "unsigned char";
     return UNDEFINED; 
 }
 
-/* 标识符 */
-[a-zA-Z_][a-zA-Z0-9_]* {
-    global_scanner->pos += cursor - start;
-    char *text = strndup((char*)start, cursor - start);
-    print_token("IDENTIFIER", text);
-    free(text);
-    return IDENTIFIER;
-}
-
 /* 数字 */
 [0-9]+ {
     global_scanner->pos += cursor - start;
     char *text = strndup((char*)start, cursor - start);
+    if (!text) {
+        fprintf(stderr, "LEXER: Failed to allocate memory for number\n");
+        return 0;
+    }
     print_token("NUMBER", text);
-    free(text);
+    yylval.str = text;  // 将所有权转移给解析器
+    // 不要在这里 free(text)! 解析器会负责释放
     return NUMBER;
 }
 
 /* 字符串 */
-
 ["] ([^"\\] | "\\" [^])* ["] {
     global_scanner->pos += cursor - start;
     char *text = strndup((char*)start, cursor - start);
+    if (!text) {
+        fprintf(stderr, "LEXER: Failed to allocate memory for string\n");
+        return 0;
+    }
     print_token("STRING", text);
-    free(text);
+    yylval.str = text;  // 将所有权转移给解析器
+    // 不要在这里 free(text)! 解析器会负责释放
     return STRING;
 }
 
+/* 标识符 */
+[a-zA-Z_][a-zA-Z0-9_]* {
+    global_scanner->pos += cursor - start;
+    char *text = strndup((char*)start, cursor - start);
+    if (!text) {
+        fprintf(stderr, "LEXER: Failed to allocate memory for identifier\n");
+        return 0;
+    }
+    print_token("IDENTIFIER", text);
+    yylval.str = text;  // 将所有权转移给解析器
+    // 不要在这里 free(text)! 解析器会负责释放
+    return IDENTIFIER;
+}
 ['] ([^'\\] | "\\" [^])* ['] {
     global_scanner->pos += cursor - start;
     char *text = strndup((char*)start, cursor - start);
@@ -177,6 +192,7 @@ re2c:define:YYCTYPE = "unsigned char";
     free(text);
     return STRING;
 }
+
 /* 运算符 */
 "+" { global_scanner->pos += cursor - start; print_token("PLUS", ""); return PLUS; }
 "-" { global_scanner->pos += cursor - start; print_token("MINUS", ""); return MINUS; }
@@ -210,6 +226,7 @@ re2c:define:YYCTYPE = "unsigned char";
 "." { global_scanner->pos += cursor - start; print_token("DOT", ""); return DOT; }
 ":" { global_scanner->pos += cursor - start; print_token("COLON", ""); return COLON; }
 "?" { global_scanner->pos += cursor - start; print_token("QUESTION", ""); return QUESTION; }
+
 /* 分隔符 */
 "(" { global_scanner->pos += cursor - start; print_token("LPAREN", ""); return LPAREN; }
 ")" { global_scanner->pos += cursor - start; print_token("RPAREN", ""); return RPAREN; }
