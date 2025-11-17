@@ -90,17 +90,6 @@ const user = {
     }
 };
 
-// 类继承
-class Student extends Person {
-    constructor(name, age, grade) {
-        super(name, age);
-        this.grade = grade;
-    }
-
-    study() {
-        return `${this.name} is studying in grade ${this.grade}`;
-    }
-}
 ```
 
 ### 数组操作
@@ -116,15 +105,6 @@ const first = numbers[0];
 const last = numbers[numbers.length - 1];
 numbers.push(6);
 numbers.pop();
-
-// 数组方法
-const doubled = numbers.map(x => x * 2);
-const evens = numbers.filter(x => x % 2 === 0);
-const sum = numbers.reduce((acc, curr) => acc + curr, 0);
-
-// 解构赋值
-const [a, b, ...rest] = numbers;
-const [x, y] = [10, 20];
 ```
 
 ### ASI 机制
