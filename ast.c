@@ -264,6 +264,106 @@ ASTNode* create_empty_statement(void) {
     return node;
 }
 
+// 创建类声明节点
+ASTNode* create_class_declaration(const char* name, ASTNode* super_class, ASTNode* body) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_CLASS_DECLARATION;
+    node->line = 0;
+    node->column = 0;
+    node->data.class_decl.name = strdup(name);
+    node->data.class_decl.super_class = super_class;
+    node->data.class_decl.body = body;
+    return node;
+}
+
+// 创建 new 表达式节点
+ASTNode* create_new_expression(ASTNode* callee, ASTNode** arguments, int argument_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_NEW_EXPRESSION;
+    node->line = 0;
+    node->column = 0;
+    node->data.new_expr.callee = callee;
+    node->data.new_expr.arguments = arguments;
+    node->data.new_expr.argument_count = argument_count;
+    return node;
+}
+
+// 创建 this 表达式节点
+ASTNode* create_this_expression(void) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_THIS_EXPRESSION;
+    node->line = 0;
+    node->column = 0;
+    return node;
+}
+
+// 创建 super 表达式节点
+ASTNode* create_super_expression(void) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_SUPER_EXPRESSION;
+    node->line = 0;
+    node->column = 0;
+    return node;
+}
+
+// 创建类体节点
+ASTNode* create_class_body(ASTNode** elements, int element_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_CLASS_BODY;
+    node->line = 0;
+    node->column = 0;
+    node->data.class_body.elements = elements;
+    node->data.class_body.element_count = element_count;
+    return node;
+}
+
+// 创建类方法节点
+ASTNode* create_class_method(const char* kind, const char* key, ASTNode* value, int is_static) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_CLASS_METHOD;
+    node->line = 0;
+    node->column = 0;
+    node->data.class_method.kind = strdup(kind);
+    node->data.class_method.key = strdup(key);
+    node->data.class_method.value = value;
+    node->data.class_method.is_static = is_static;
+    return node;
+}
+
+// 创建类属性节点
+ASTNode* create_class_property(const char* key, ASTNode* value, int is_static) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_CLASS_PROPERTY;
+    node->line = 0;
+    node->column = 0;
+    node->data.class_property.key = strdup(key);
+    node->data.class_property.value = value;
+    node->data.class_property.is_static = is_static;
+    return node;
+}
+
+// 创建数组字面量节点
+ASTNode* create_array_literal(ASTNode** elements, int element_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_ARRAY_LITERAL;
+    node->line = 0;
+    node->column = 0;
+    node->data.array_literal.elements = elements;
+    node->data.array_literal.element_count = element_count;
+    return node;
+}
+
+// 创建数组访问节点
+ASTNode* create_array_access(ASTNode* array, ASTNode* index) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_ARRAY_ACCESS;
+    node->line = 0;
+    node->column = 0;
+    node->data.array_access.array = array;
+    node->data.array_access.index = index;
+    return node;
+}
+
 // 释放 AST 节点
 void free_ast(ASTNode* node) {
     if (!node) return;
@@ -374,13 +474,67 @@ void free_ast(ASTNode* node) {
                 free_ast(node->data.return_stmt.argument);
             }
             break;
+        
+                
+        case AST_CLASS_DECLARATION:
+            free(node->data.class_decl.name);
+            if (node->data.class_decl.super_class) {
+                free_ast(node->data.class_decl.super_class);
+            }
+            free_ast(node->data.class_decl.body);
+            break;
+            
+        case AST_NEW_EXPRESSION:
+            free_ast(node->data.new_expr.callee);
+            for (int i = 0; i < node->data.new_expr.argument_count; i++) {
+                free_ast(node->data.new_expr.arguments[i]);
+            }
+            free(node->data.new_expr.arguments);
+            break;
+            
+        case AST_THIS_EXPRESSION:
+        case AST_SUPER_EXPRESSION:
+            // 这些节点没有额外数据需要释放
+            break;
+            
+        case AST_CLASS_BODY:
+            for (int i = 0; i < node->data.class_body.element_count; i++) {
+                free_ast(node->data.class_body.elements[i]);
+            }
+            free(node->data.class_body.elements);
+            break;
+            
+        case AST_CLASS_METHOD:
+            free(node->data.class_method.kind);
+            free(node->data.class_method.key);
+            free_ast(node->data.class_method.value);
+            break;
+            
+        case AST_CLASS_PROPERTY:
+            free(node->data.class_property.key);
+            if (node->data.class_property.value) {
+                free_ast(node->data.class_property.value);
+            }
+            break;
+
+        case AST_ARRAY_LITERAL:
+            for (int i = 0; i < node->data.array_literal.element_count; i++) {
+                free_ast(node->data.array_literal.elements[i]);
+            }
+            free(node->data.array_literal.elements);
+            break;
+            
+        case AST_ARRAY_ACCESS:
+            free_ast(node->data.array_access.array);
+            free_ast(node->data.array_access.index);
+            break;
             
         case AST_BREAK_STATEMENT:
         case AST_CONTINUE_STATEMENT:
         case AST_EMPTY_STATEMENT:
             // 这些节点没有额外数据需要释放
             break;
-            
+        
         default:
             break;
     }
@@ -597,6 +751,70 @@ void print_ast(ASTNode* node, int indent) {
             print_ast(node->data.unary_expr.operand, indent + 1);
             break;
         }
+
+        case AST_CLASS_DECLARATION:
+            printf("ClassDeclaration: %s\n", node->data.class_decl.name);
+            if (node->data.class_decl.super_class) {
+                for (int i = 0; i < indent + 1; i++) printf("  ");
+                printf("SuperClass:\n");
+                print_ast(node->data.class_decl.super_class, indent + 2);
+            }
+            print_ast(node->data.class_decl.body, indent + 1);
+            break;
+            
+        case AST_NEW_EXPRESSION:
+            printf("NewExpression\n");
+            print_ast(node->data.new_expr.callee, indent + 1);
+            for (int i = 0; i < node->data.new_expr.argument_count; i++) {
+                print_ast(node->data.new_expr.arguments[i], indent + 1);
+            }
+            break;
+            
+        case AST_THIS_EXPRESSION:
+            printf("ThisExpression\n");
+            break;
+            
+        case AST_SUPER_EXPRESSION:
+            printf("SuperExpression\n");
+            break;
+            
+        case AST_CLASS_BODY:
+            printf("ClassBody\n");
+            for (int i = 0; i < node->data.class_body.element_count; i++) {
+                print_ast(node->data.class_body.elements[i], indent + 1);
+            }
+            break;
+            
+        case AST_CLASS_METHOD:
+            printf("ClassMethod: %s %s%s\n", 
+                   node->data.class_method.kind,
+                   node->data.class_method.key,
+                   node->data.class_method.is_static ? " (static)" : "");
+            print_ast(node->data.class_method.value, indent + 1);
+            break;
+            
+        case AST_CLASS_PROPERTY:
+            printf("ClassProperty: %s%s\n", 
+                   node->data.class_property.key,
+                   node->data.class_property.is_static ? " (static)" : "");
+            if (node->data.class_property.value) {
+                print_ast(node->data.class_property.value, indent + 1);
+            }
+            break;
+        
+        case AST_ARRAY_LITERAL:
+            printf("ArrayLiteral\n");
+            for (int i = 0; i < node->data.array_literal.element_count; i++) {
+                print_ast(node->data.array_literal.elements[i], indent + 1);
+            }
+            break;
+            
+        case AST_ARRAY_ACCESS:
+            printf("ArrayAccess\n");
+            print_ast(node->data.array_access.array, indent + 1);
+            print_ast(node->data.array_access.index, indent + 1);
+            break;
+        
         default:
             printf("Unknown AST node type: %d\n", node->type);
             break;

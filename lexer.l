@@ -143,6 +143,41 @@ re2c:define:YYCTYPE = "unsigned char";
     print_token("UNDEFINED", "");
     return UNDEFINED; 
 }
+"class" { 
+    global_scanner->pos += cursor - start;
+    print_token("CLASS", "");
+    return CLASS; 
+}
+"new" { 
+    global_scanner->pos += cursor - start;
+    print_token("NEW", "");
+    return NEW; 
+}
+"this" { 
+    global_scanner->pos += cursor - start;
+    print_token("THIS", "");
+    return THIS; 
+}
+"super" { 
+    global_scanner->pos += cursor - start;
+    print_token("SUPER", "");
+    return SUPER; 
+}
+"static" { 
+    global_scanner->pos += cursor - start;
+    print_token("STATIC", "");
+    return STATIC; 
+}
+"extends" { 
+    global_scanner->pos += cursor - start;
+    print_token("EXTENDS", "");
+    return EXTENDS; 
+}
+"constructor" { 
+    global_scanner->pos += cursor - start;
+    print_token("CONSTRUCTOR", "");
+    return CONSTRUCTOR; 
+}
 
 /* 数字 */
 [0-9]+ {

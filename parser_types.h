@@ -14,4 +14,27 @@ typedef struct {
     int parameter_count;
 } ParamList;
 
+// 添加类相关的结构体
+typedef struct {
+    ASTNode** elements;
+    int element_count;
+} ClassElementList;
+
+typedef struct {
+    char* kind;
+    char* key;
+    ASTNode* value;
+} MethodDefinition;
+
+typedef struct {
+    char* key;
+    ASTNode* value;
+} PropertyDefinition;
+
+// 添加数组相关的结构体
+typedef struct {
+    ASTNode** elements;
+    int element_count;
+} ArrayElementList;
+
 #endif

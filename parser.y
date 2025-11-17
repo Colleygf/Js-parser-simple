@@ -24,12 +24,17 @@ ASTNode* ast_root = NULL;
 %union {
     char* str;
     ASTNode* node;
+    int int_val;
     ArgList* arg_list;
     ParamList* param_list;
+    ClassElementList* class_element_list;
+    MethodDefinition* method_def;
+    PropertyDefinition* prop_def;
 }
 
 %token IF ELSE WHILE FOR FUNCTION VAR LET CONST RETURN BREAK CONTINUE
 %token TRUE FALSE NULL_LITERAL UNDEFINED
+%token CLASS NEW THIS SUPER STATIC EXTENDS CONSTRUCTOR
 %token NEWLINE
 %token <str> IDENTIFIER NUMBER STRING
 %token PLUS MINUS STAR SLASH PERCENT
@@ -39,6 +44,7 @@ ASTNode* ast_root = NULL;
 %token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET
 %token SEMICOLON COMMA DOT COLON QUESTION
 %token ERROR
+
 
 /* 重新设计的优先级和结合性 */
 %nonassoc POSTFIX          /* 后缀运算符 */
@@ -73,11 +79,24 @@ ASTNode* ast_root = NULL;
 %type <node> logical_or_expression logical_and_expression equality_expression
 %type <node> relational_expression additive_expression multiplicative_expression
 %type <node> unary_expression postfix_expression primary_expression
-%type <node> call_expression member_expression
+%type <node> call_expression member_expression new_expression
 %type <node> expression_opt for_init for_cond for_iter
 %type <param_list> parameter_list_opt parameter_list
 %type <node> asi_semicolon
 %type <arg_list> argument_list_opt argument_list
+
+// 添加类和对象相关的类型声明
+%type <node> class_declaration class_body class_element
+%type <node> class_extends_opt
+%type <int_val> static_opt
+%type <method_def> method_definition
+%type <prop_def> property_definition
+%type <class_element_list> class_element_list_opt class_element_list
+%type <node> left_hand_side
+
+//数组相关
+%type <node> array_literal
+%type <arg_list> array_element_list_opt array_element_list  // 使用 arg_list 类型
 
 %start program
 
@@ -128,11 +147,129 @@ statement
     | while_statement { $$ = $1; }
     | for_statement { $$ = $1; }
     | function_declaration { $$ = $1; }
+    | class_declaration { $$ = $1; }
     | return_statement { $$ = $1; }
     | break_statement { $$ = $1; }
     | continue_statement { $$ = $1; }
     | block_statement { $$ = $1; }
     | empty_statement { $$ = $1; }
+    ;
+
+/* 类声明语法规则 */
+class_declaration
+    : CLASS IDENTIFIER class_extends_opt class_body asi_semicolon
+    {
+        $$ = create_class_declaration($2, $3, $4);
+        free($2);
+    }
+    ;
+
+class_extends_opt
+    : /* empty */ { $$ = NULL; }
+    | EXTENDS IDENTIFIER { $$ = create_identifier($2); free($2); }
+    ;
+
+class_body
+    : LBRACE class_element_list_opt RBRACE
+    {
+        $$ = create_class_body($2->elements, $2->element_count);
+        free($2); // 释放临时结构体，但不释放其中的元素
+    }
+    ;
+
+class_element_list_opt
+    : /* empty */
+    {
+        $$ = malloc(sizeof(ClassElementList));
+        $$->elements = malloc(sizeof(ASTNode*) * 0);
+        $$->element_count = 0;
+    }
+    | class_element_list
+    {
+        $$ = $1;
+    }
+    ;
+
+class_element_list
+    : class_element
+    {
+        $$ = malloc(sizeof(ClassElementList));
+        $$->elements = malloc(sizeof(ASTNode*) * 1);
+        $$->elements[0] = $1;
+        $$->element_count = 1;
+    }
+    | class_element_list class_element
+    {
+        int old_count = $1->element_count;
+        ASTNode** new_elements = malloc(sizeof(ASTNode*) * (old_count + 1));
+        
+        for (int i = 0; i < old_count; i++) {
+            new_elements[i] = $1->elements[i];
+        }
+        new_elements[old_count] = $2;
+        
+        free($1->elements);
+        $1->elements = new_elements;
+        $1->element_count = old_count + 1;
+        $$ = $1;
+    }
+    ;
+
+class_element
+    : static_opt method_definition
+    {
+        $$ = create_class_method($2->kind, $2->key, $2->value, $1);
+        free($2->key);
+        free($2);
+    }
+    | static_opt property_definition SEMICOLON
+    {
+        $$ = create_class_property($2->key, $2->value, $1);
+        free($2->key);
+        free($2);
+    }
+    ;
+
+static_opt
+    : /* empty */ { $$ = 0; }
+    | STATIC { $$ = 1; }
+    ;
+
+method_definition
+    : CONSTRUCTOR LPAREN parameter_list_opt RPAREN block_statement
+    {
+        $$ = malloc(sizeof(MethodDefinition));
+        $$->kind = strdup("constructor");
+        $$->key = strdup("constructor");
+        $$->value = create_function_declaration("constructor", $3->parameters, $3->parameter_count, $5);
+        free($3);
+    }
+    | IDENTIFIER LPAREN parameter_list_opt RPAREN block_statement
+    {
+        $$ = malloc(sizeof(MethodDefinition));
+        $$->kind = strdup("method");
+        $$->key = strdup($1);
+        $$->value = create_function_declaration($1, $3->parameters, $3->parameter_count, $5);
+        free($1);
+        free($3);
+    }
+    ;
+
+property_definition
+    : IDENTIFIER
+    {
+        $$ = malloc(sizeof(PropertyDefinition));
+        $$->key = strdup($1);
+        $$->value = NULL;
+        free($1);
+    }
+    | IDENTIFIER EQUALS expression
+    {
+        $$ = malloc(sizeof(PropertyDefinition));
+        $$->key = strdup($1);
+        $$->value = $3;
+        free($1);
+    }
     ;
 
 /* 变量声明 */
@@ -341,31 +478,32 @@ expression
 
 assignment_expression
     : conditional_expression { $$ = $1; }
-    | IDENTIFIER EQUALS assignment_expression
+    | left_hand_side EQUALS assignment_expression
     {
-        $$ = create_assignment_expression(OP_ASSIGN, create_identifier($1), $3);
-        free($1);
+        $$ = create_assignment_expression(OP_ASSIGN, $1, $3);
     }
-    | IDENTIFIER PLUS_EQ assignment_expression
+    | left_hand_side PLUS_EQ assignment_expression
     {
-        $$ = create_assignment_expression(OP_ADD_ASSIGN, create_identifier($1), $3);
-        free($1);
+        $$ = create_assignment_expression(OP_ADD_ASSIGN, $1, $3);
     }
-    | IDENTIFIER MINUS_EQ assignment_expression
+    | left_hand_side MINUS_EQ assignment_expression
     {
-        $$ = create_assignment_expression(OP_SUB_ASSIGN, create_identifier($1), $3);
-        free($1);
+        $$ = create_assignment_expression(OP_SUB_ASSIGN, $1, $3);
     }
-    | IDENTIFIER STAR_EQ assignment_expression
+    | left_hand_side STAR_EQ assignment_expression
     {
-        $$ = create_assignment_expression(OP_MUL_ASSIGN, create_identifier($1), $3);
-        free($1);
+        $$ = create_assignment_expression(OP_MUL_ASSIGN, $1, $3);
     }
-    | IDENTIFIER SLASH_EQ assignment_expression
+    | left_hand_side SLASH_EQ assignment_expression
     {
-        $$ = create_assignment_expression(OP_DIV_ASSIGN, create_identifier($1), $3);
-        free($1);
+        $$ = create_assignment_expression(OP_DIV_ASSIGN, $1, $3);
     }
+    ;
+
+// 添加 left_hand_side 规则，允许标识符和成员表达式作为赋值目标
+left_hand_side
+    : IDENTIFIER { $$ = create_identifier($1); free($1); }
+    | member_expression { $$ = $1; }
     ;
 
 conditional_expression
@@ -472,8 +610,15 @@ unary_expression
     }
     | BANG unary_expression
     {
-        // 注意：这里需要为逻辑非创建一个新的操作符类型
-        $$ = create_unary_expression(OP_SUB, $2); // 临时使用减法操作符
+        $$ = create_unary_expression(OP_NOT, $2);
+    }
+    | PLUS_PLUS unary_expression  // 前缀递增
+    {
+        $$ = create_unary_expression(OP_PRE_INC, $2);
+    }
+    | MINUS_MINUS unary_expression  // 前缀递减
+    {
+        $$ = create_unary_expression(OP_PRE_DEC, $2);
     }
     ;
 
@@ -481,6 +626,15 @@ postfix_expression
     : primary_expression { $$ = $1; }
     | call_expression { $$ = $1; }
     | member_expression { $$ = $1; }
+    | new_expression { $$ = $1; }
+    | postfix_expression PLUS_PLUS %prec POST_INC
+    {
+        $$ = create_unary_expression(OP_POST_INC, $1);
+    }
+    | postfix_expression MINUS_MINUS %prec POST_DEC
+    {
+        $$ = create_unary_expression(OP_POST_DEC, $1);
+    }
     ;
 
 /* 调用表达式 */
@@ -501,44 +655,7 @@ call_expression
         free($3);
     }
     ;
-    
-postfix_expression
-    : primary_expression { $$ = $1; }
-    | call_expression { $$ = $1; }
-    | member_expression { $$ = $1; }
-    | postfix_expression PLUS_PLUS %prec POST_INC
-    {
-        $$ = create_unary_expression(OP_POST_INC, $1);
-    }
-    | postfix_expression MINUS_MINUS %prec POST_DEC
-    {
-        $$ = create_unary_expression(OP_POST_DEC, $1);
-    }
-    ;
 
-unary_expression
-    : postfix_expression { $$ = $1; }
-    | PLUS unary_expression
-    {
-        $$ = create_unary_expression(OP_ADD, $2);
-    }
-    | MINUS unary_expression
-    {
-        $$ = create_unary_expression(OP_SUB, $2);
-    }
-    | BANG unary_expression
-    {
-        $$ = create_unary_expression(OP_NOT, $2);
-    }
-    | PLUS_PLUS unary_expression  // 前缀递增
-    {
-        $$ = create_unary_expression(OP_PRE_INC, $2);
-    }
-    | MINUS_MINUS unary_expression  // 前缀递减
-    {
-        $$ = create_unary_expression(OP_PRE_DEC, $2);
-    }
-    ;
 /* 成员表达式 */
 member_expression
     : primary_expression DOT IDENTIFIER
@@ -561,6 +678,19 @@ member_expression
     }
     ;
 
+/* new 表达式 */
+new_expression
+    : NEW member_expression LPAREN argument_list_opt RPAREN
+    {
+        $$ = create_new_expression($2, $4->arguments, $4->argument_count);
+        free($4);
+    }
+    | NEW call_expression
+    {
+        $$ = create_new_expression($2, NULL, 0);
+    }
+    ;
+
 primary_expression
     : IDENTIFIER { $$ = create_identifier($1); free($1); }
     | NUMBER { $$ = create_number($1); free($1); }
@@ -569,6 +699,9 @@ primary_expression
     | FALSE { $$ = create_boolean(0); }
     | NULL_LITERAL { $$ = create_null(); }
     | UNDEFINED { $$ = create_undefined(); }
+    | THIS { $$ = create_this_expression(); }
+    | SUPER { $$ = create_super_expression(); }
+    | array_literal { $$ = $1; }
     | LPAREN expression RPAREN { $$ = $2; }
     ;
 
@@ -609,6 +742,54 @@ argument_list
         $$ = $1;
     }
     ;
+
+// 添加数组字面量规则
+array_literal
+    : LBRACKET array_element_list_opt RBRACKET
+    {
+        $$ = create_array_literal($2->arguments, $2->argument_count);
+        free($2);
+    }
+    ;
+
+array_element_list_opt
+    : /* empty */
+    {
+        $$ = malloc(sizeof(ArgList));
+        $$->arguments = malloc(sizeof(ASTNode*) * 0);
+        $$->argument_count = 0;
+    }
+    | array_element_list
+    {
+        $$ = $1;
+    }
+    ;
+
+array_element_list
+    : expression
+    {
+        $$ = malloc(sizeof(ArgList));
+        $$->arguments = malloc(sizeof(ASTNode*) * 1);
+        $$->arguments[0] = $1;
+        $$->argument_count = 1;
+    }
+    | array_element_list COMMA expression
+    {
+        int old_count = $1->argument_count;
+        ASTNode** new_args = malloc(sizeof(ASTNode*) * (old_count + 1));
+        
+        for (int i = 0; i < old_count; i++) {
+            new_args[i] = $1->arguments[i];
+        }
+        new_args[old_count] = $3;
+        
+        free($1->arguments);
+        $1->arguments = new_args;
+        $1->argument_count = old_count + 1;
+        $$ = $1;
+    }
+    ;
+
 
 %%
 

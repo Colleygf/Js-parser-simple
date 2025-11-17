@@ -69,62 +69,69 @@ extern int yydebug;
     FALSE = 270,                   /* FALSE  */
     NULL_LITERAL = 271,            /* NULL_LITERAL  */
     UNDEFINED = 272,               /* UNDEFINED  */
-    NEWLINE = 273,                 /* NEWLINE  */
-    IDENTIFIER = 274,              /* IDENTIFIER  */
-    NUMBER = 275,                  /* NUMBER  */
-    STRING = 276,                  /* STRING  */
-    PLUS = 277,                    /* PLUS  */
-    MINUS = 278,                   /* MINUS  */
-    STAR = 279,                    /* STAR  */
-    SLASH = 280,                   /* SLASH  */
-    PERCENT = 281,                 /* PERCENT  */
-    EQUALS = 282,                  /* EQUALS  */
-    EQ_EQ = 283,                   /* EQ_EQ  */
-    NOT_EQ = 284,                  /* NOT_EQ  */
-    STRICT_EQ = 285,               /* STRICT_EQ  */
-    STRICT_NOT_EQ = 286,           /* STRICT_NOT_EQ  */
-    LT = 287,                      /* LT  */
-    LE = 288,                      /* LE  */
-    GT = 289,                      /* GT  */
-    GE = 290,                      /* GE  */
-    BANG = 291,                    /* BANG  */
-    AND = 292,                     /* AND  */
-    OR = 293,                      /* OR  */
-    PLUS_PLUS = 294,               /* PLUS_PLUS  */
-    MINUS_MINUS = 295,             /* MINUS_MINUS  */
-    PLUS_EQ = 296,                 /* PLUS_EQ  */
-    MINUS_EQ = 297,                /* MINUS_EQ  */
-    STAR_EQ = 298,                 /* STAR_EQ  */
-    SLASH_EQ = 299,                /* SLASH_EQ  */
-    LPAREN = 300,                  /* LPAREN  */
-    RPAREN = 301,                  /* RPAREN  */
-    LBRACE = 302,                  /* LBRACE  */
-    RBRACE = 303,                  /* RBRACE  */
-    LBRACKET = 304,                /* LBRACKET  */
-    RBRACKET = 305,                /* RBRACKET  */
-    SEMICOLON = 306,               /* SEMICOLON  */
-    COMMA = 307,                   /* COMMA  */
-    DOT = 308,                     /* DOT  */
-    COLON = 309,                   /* COLON  */
-    QUESTION = 310,                /* QUESTION  */
-    ERROR = 311,                   /* ERROR  */
-    POSTFIX = 312,                 /* POSTFIX  */
-    ASSIGNMENT = 313,              /* ASSIGNMENT  */
-    BITWISE_OR = 314,              /* BITWISE_OR  */
-    BITWISE_XOR = 315,             /* BITWISE_XOR  */
-    BITWISE_AND = 316,             /* BITWISE_AND  */
-    EQUALITY = 317,                /* EQUALITY  */
-    RELATIONAL = 318,              /* RELATIONAL  */
-    SHIFT = 319,                   /* SHIFT  */
-    ADDITIVE = 320,                /* ADDITIVE  */
-    MULTIPLICATIVE = 321,          /* MULTIPLICATIVE  */
-    EXPONENTIAL = 322,             /* EXPONENTIAL  */
-    UNARY = 323,                   /* UNARY  */
-    CALL = 324,                    /* CALL  */
-    PRE_INC = 325,                 /* PRE_INC  */
-    PRE_DEC = 326,                 /* PRE_DEC  */
-    POST_INC = 327,                /* POST_INC  */
-    POST_DEC = 328                 /* POST_DEC  */
+    CLASS = 273,                   /* CLASS  */
+    NEW = 274,                     /* NEW  */
+    THIS = 275,                    /* THIS  */
+    SUPER = 276,                   /* SUPER  */
+    STATIC = 277,                  /* STATIC  */
+    EXTENDS = 278,                 /* EXTENDS  */
+    CONSTRUCTOR = 279,             /* CONSTRUCTOR  */
+    NEWLINE = 280,                 /* NEWLINE  */
+    IDENTIFIER = 281,              /* IDENTIFIER  */
+    NUMBER = 282,                  /* NUMBER  */
+    STRING = 283,                  /* STRING  */
+    PLUS = 284,                    /* PLUS  */
+    MINUS = 285,                   /* MINUS  */
+    STAR = 286,                    /* STAR  */
+    SLASH = 287,                   /* SLASH  */
+    PERCENT = 288,                 /* PERCENT  */
+    EQUALS = 289,                  /* EQUALS  */
+    EQ_EQ = 290,                   /* EQ_EQ  */
+    NOT_EQ = 291,                  /* NOT_EQ  */
+    STRICT_EQ = 292,               /* STRICT_EQ  */
+    STRICT_NOT_EQ = 293,           /* STRICT_NOT_EQ  */
+    LT = 294,                      /* LT  */
+    LE = 295,                      /* LE  */
+    GT = 296,                      /* GT  */
+    GE = 297,                      /* GE  */
+    BANG = 298,                    /* BANG  */
+    AND = 299,                     /* AND  */
+    OR = 300,                      /* OR  */
+    PLUS_PLUS = 301,               /* PLUS_PLUS  */
+    MINUS_MINUS = 302,             /* MINUS_MINUS  */
+    PLUS_EQ = 303,                 /* PLUS_EQ  */
+    MINUS_EQ = 304,                /* MINUS_EQ  */
+    STAR_EQ = 305,                 /* STAR_EQ  */
+    SLASH_EQ = 306,                /* SLASH_EQ  */
+    LPAREN = 307,                  /* LPAREN  */
+    RPAREN = 308,                  /* RPAREN  */
+    LBRACE = 309,                  /* LBRACE  */
+    RBRACE = 310,                  /* RBRACE  */
+    LBRACKET = 311,                /* LBRACKET  */
+    RBRACKET = 312,                /* RBRACKET  */
+    SEMICOLON = 313,               /* SEMICOLON  */
+    COMMA = 314,                   /* COMMA  */
+    DOT = 315,                     /* DOT  */
+    COLON = 316,                   /* COLON  */
+    QUESTION = 317,                /* QUESTION  */
+    ERROR = 318,                   /* ERROR  */
+    POSTFIX = 319,                 /* POSTFIX  */
+    ASSIGNMENT = 320,              /* ASSIGNMENT  */
+    BITWISE_OR = 321,              /* BITWISE_OR  */
+    BITWISE_XOR = 322,             /* BITWISE_XOR  */
+    BITWISE_AND = 323,             /* BITWISE_AND  */
+    EQUALITY = 324,                /* EQUALITY  */
+    RELATIONAL = 325,              /* RELATIONAL  */
+    SHIFT = 326,                   /* SHIFT  */
+    ADDITIVE = 327,                /* ADDITIVE  */
+    MULTIPLICATIVE = 328,          /* MULTIPLICATIVE  */
+    EXPONENTIAL = 329,             /* EXPONENTIAL  */
+    UNARY = 330,                   /* UNARY  */
+    CALL = 331,                    /* CALL  */
+    PRE_INC = 332,                 /* PRE_INC  */
+    PRE_DEC = 333,                 /* PRE_DEC  */
+    POST_INC = 334,                /* POST_INC  */
+    POST_DEC = 335                 /* POST_DEC  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -137,10 +144,14 @@ union YYSTYPE
 
     char* str;
     ASTNode* node;
+    int int_val;
     ArgList* arg_list;
     ParamList* param_list;
+    ClassElementList* class_element_list;
+    MethodDefinition* method_def;
+    PropertyDefinition* prop_def;
 
-#line 144 "parser.h"
+#line 155 "parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

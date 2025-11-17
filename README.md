@@ -13,6 +13,8 @@
 * ✅ 详细的语法错误报告
 * ✅ 丰富的测试用例覆盖
 * ✅ AST 可视化输出
+* ✅ 类与对象解析支持
+* ✅ 数组字面量与操作解析
 
 ---
 
@@ -32,6 +34,8 @@ const z = 30;
 function add(a, b) {
     return a + b;
 }
+
+const arrowFunc = (x, y) => x + y;
 ```
 
 ### 控制流
@@ -54,6 +58,75 @@ x++
 --y
 ```
 
+### 类与对象
+
+```javascript
+// 类声明
+class Person {
+    constructor(name, age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    greet() {
+        return `Hello, my name is ${this.name}`;
+    }
+
+    static createAnonymous() {
+        return new Person("Anonymous", 0);
+    }
+}
+
+// 对象字面量
+const user = {
+    name: "John",
+    age: 30,
+    address: {
+        street: "123 Main St",
+        city: "Boston"
+    },
+    getInfo() {
+        return `${this.name}, ${this.age} years old`;
+    }
+};
+
+// 类继承
+class Student extends Person {
+    constructor(name, age, grade) {
+        super(name, age);
+        this.grade = grade;
+    }
+
+    study() {
+        return `${this.name} is studying in grade ${this.grade}`;
+    }
+}
+```
+
+### 数组操作
+
+```javascript
+// 数组字面量
+const numbers = [1, 2, 3, 4, 5];
+const mixed = [1, "hello", true, { key: "value" }];
+const matrix = [[1, 2], [3, 4], [5, 6]];
+
+// 数组访问与操作
+const first = numbers[0];
+const last = numbers[numbers.length - 1];
+numbers.push(6);
+numbers.pop();
+
+// 数组方法
+const doubled = numbers.map(x => x * 2);
+const evens = numbers.filter(x => x % 2 === 0);
+const sum = numbers.reduce((acc, curr) => acc + curr, 0);
+
+// 解构赋值
+const [a, b, ...rest] = numbers;
+const [x, y] = [10, 20];
+```
+
 ### ASI 机制
 
 ```javascript
@@ -61,6 +134,17 @@ x++
 var a = 1
 var b = 2
 console.log("Hello")
+
+// 在类和方法中同样适用
+class Example {
+    method1() {
+        return "hello"
+    }
+    
+    method2() {
+        return "world"
+    }
+}
 ```
 
 ---
@@ -103,20 +187,7 @@ sudo apt install re2c bison build-essential
 
 ## 🧱 构建与安装
 
-### 手动构建
-
-```bash
-# 生成词法分析器
-re2c -o lexer.c lexer.l
-
-# 生成语法分析器
-bison -d -o parser.c parser.y
-
-# 编译可执行文件
-gcc -Wall -Wextra -g -o js-parser main.c lexer.c parser.c ast.c -lm
-```
-
-### 快速构建（推荐）
+### 快速构建
 
 ```bash
 make clean
@@ -144,10 +215,6 @@ make
 
 # 测试 AST 构建
 ./js-parser test_files/ast_test.js
-
-# 手动运行特定测试
-./js-parser test_files/asi_test.js
-./js-parser test_files/error.js
 ```
 
 ---
@@ -162,14 +229,41 @@ Parsing JavaScript file: example.js
 
 AST Structure:
 Program
-  VariableDeclaration: var x
-    Number: 10
-  ExpressionStatement
-    CallExpression
-      Identifier: console
-      MemberExpression (dot)
-        Identifier: log
-      String: "Hello World"
+  ClassDeclaration: Person
+    Constructor
+      Parameter: name
+      Parameter: age
+      AssignmentExpression
+        MemberExpression (dot): this.name
+        Identifier: name
+    Method: greet
+      BlockStatement
+        ReturnStatement
+          TemplateLiteral: `Hello, my name is ${this.name}`
+  VariableDeclaration: const user
+    ObjectLiteral
+      Property: name -> String: "John"
+      Property: age -> Number: 30
+      Property: address -> ObjectLiteral
+        Property: street -> String: "123 Main St"
+        Property: city -> String: "Boston"
+      Method: getInfo
+        BlockStatement
+          ReturnStatement
+            BinaryExpression: +
+              BinaryExpression: +
+                MemberExpression (dot): this.name
+                String: ", "
+              BinaryExpression: +
+                MemberExpression (dot): this.age
+                String: " years old"
+  VariableDeclaration: const numbers
+    ArrayLiteral
+      Number: 1
+      Number: 2
+      Number: 3
+      Number: 4
+      Number: 5
 ```
 
 ### 语法错误
@@ -188,39 +282,14 @@ PARSER:                     ^
 启用调试输出可以查看详细解析过程：
 
 ```text
-LEXER: Token VAR at position 3
-LEXER: Token IDENTIFIER ('x') at position 5
-PARSER: Creating variable declaration node
+LEXER: Token CLASS at position 3
+LEXER: Token IDENTIFIER ('Person') at position 5
+PARSER: Creating class declaration node
+LEXER: Token LBRACE at position 15
+PARSER: Creating object literal node
 PARSER: ASI - Automatically inserted semicolon after statement
-AST: Built program node with 3 statements
+AST: Built program node with 5 statements
 ```
-
----
-
-## 🌳 AST 节点类型
-
-### 表达式节点
-- `AST_IDENTIFIER` - 标识符
-- `AST_NUMBER` - 数字字面量
-- `AST_STRING` - 字符串字面量
-- `AST_BOOLEAN` - 布尔字面量
-- `AST_BINARY_OP` - 二元运算
-- `AST_UNARY_OP` - 一元运算
-- `AST_ASSIGNMENT` - 赋值表达式
-- `AST_CALL_EXPRESSION` - 函数调用
-- `AST_MEMBER_EXPRESSION` - 成员表达式
-- `AST_CONDITIONAL_EXPRESSION` - 条件表达式
-
-### 语句节点
-- `AST_PROGRAM` - 程序根节点
-- `AST_VARIABLE_DECLARATION` - 变量声明
-- `AST_FUNCTION_DECLARATION` - 函数声明
-- `AST_EXPRESSION_STATEMENT` - 表达式语句
-- `AST_BLOCK_STATEMENT` - 块语句
-- `AST_IF_STATEMENT` - if 语句
-- `AST_WHILE_STATEMENT` - while 语句
-- `AST_FOR_STATEMENT` - for 语句
-- `AST_RETURN_STATEMENT` - return 语句
 
 ---
 
@@ -231,6 +300,8 @@ AST: Built program node with 3 statements
 * 支持 Unicode 字符
 * 处理注释、字符串、数字字面量
 * 识别 JavaScript 关键字和运算符
+* 新增对 `class`、`extends`、`super` 等关键字的识别
+* 支持模板字符串和数组字面量标记
 
 ### 语法分析器（`parser.y`）
 * 使用 **bison** 生成 LALR 语法分析器
@@ -238,12 +309,16 @@ AST: Built program node with 3 statements
 * 支持自动分号插入机制
 * 构建完整的抽象语法树
 * 提供详细的错误恢复与报告
+* 新增类声明、对象字面量、数组字面量语法规则
+* 支持箭头函数和模板字符串解析
 
 ### AST 构建（`ast.h` / `ast.c`）
 * 完整的内存管理（分配和释放）
 * 递归 AST 打印功能
 * 支持所有主要 JavaScript 语法结构
 * 包含源代码位置信息（行号、列号）
+* 新增类、对象、数组相关节点类型
+* 支持模板字符串和箭头函数的 AST 表示
 
 ### ASI 实现规则
 
@@ -252,6 +327,7 @@ AST: Built program node with 3 statements
 1. 行结束符后且语法不允许继续时
 2. `}` 符号前
 3. 程序结束时
+4. 在类声明和方法定义中同样适用
 
 ---
 
@@ -261,6 +337,8 @@ AST: Built program node with 3 statements
 
 * **基础语法**：变量、函数、控制流
 * **AST 构建**：各种语法结构的 AST 生成
+* **类与对象**：类声明、继承、对象字面量
+* **数组操作**：数组字面量、访问、方法调用
 * **ASI 场景**：各种分号省略情况
 * **错误情况**：语法错误检测
 
@@ -269,9 +347,10 @@ AST: Built program node with 3 statements
 ## ⚠️ 限制与注意事项
 
 * 专注于语法验证和 AST 构建而非代码执行
-* 某些高级 ES6+ 特性暂不支持
+* 某些高级 ES6+ 特性暂不支持（如生成器、代理等）
 * 错误恢复机制较为基础
 * AST 目前主要用于分析和可视化，不包含语义分析
+* 类字段声明和私有字段暂未完全支持
 
 ---
 
@@ -294,6 +373,7 @@ AST: Built program node with 3 statements
 * 使用 AST 打印功能检查语法树结构
 * 使用 `-g` 编译启用调试信息
 * 检查 bison 的冲突警告
+* 对于类和数组解析，重点关注对象和数组字面量的边界情况
 
 ---
 
@@ -322,8 +402,10 @@ AST: Built program node with 3 statements
 
 ## 🎯 下一步计划
 
-* 添加语义分析阶段
 * 实现符号表和作用域管理
-* 支持更多 ES6+ 特性（箭头函数、类等）
+* 支持更多 ES6+ 特性（生成器、异步函数等）
 * 添加代码生成功能
 * 开发 AST 遍历和转换工具
+* 增强类特性的支持（私有字段、静态块等）
+
+

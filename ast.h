@@ -28,7 +28,20 @@ typedef enum {
     AST_RETURN_STATEMENT,
     AST_BREAK_STATEMENT,
     AST_CONTINUE_STATEMENT,
-    AST_EMPTY_STATEMENT
+    AST_EMPTY_STATEMENT,
+    
+    // 类和对象相关节点
+    AST_CLASS_DECLARATION,
+    AST_NEW_EXPRESSION,
+    AST_THIS_EXPRESSION,
+    AST_SUPER_EXPRESSION,
+    AST_CLASS_BODY,
+    AST_CLASS_METHOD,
+    AST_CLASS_PROPERTY,
+    
+    // 数组相关节点（新添加的）
+    AST_ARRAY_LITERAL,
+    AST_ARRAY_ACCESS
 } ASTNodeType;
 
 typedef enum {
@@ -174,6 +187,53 @@ typedef struct ASTNode {
         struct {
             struct ASTNode* argument;
         } return_stmt;
+        
+        // 类声明
+        struct {
+            char* name;
+            struct ASTNode* super_class;  // 父类（可选）
+            struct ASTNode* body;         // 类体
+        } class_decl;
+        
+        // new 表达式
+        struct {
+            struct ASTNode* callee;
+            struct ASTNode** arguments;
+            int argument_count;
+        } new_expr;
+        
+        // 类体
+        struct {
+            struct ASTNode** elements;
+            int element_count;
+        } class_body;
+        
+        // 类方法
+        struct {
+            char* kind;  // "method", "get", "set", "constructor"
+            char* key;   // 方法名
+            struct ASTNode* value; // 函数表达式
+            int is_static;
+        } class_method;
+        
+        // 类属性
+        struct {
+            char* key;   // 属性名
+            struct ASTNode* value; // 初始值（可选）
+            int is_static;
+        } class_property;
+        
+        // 数组字面量（新添加的）
+        struct {
+            struct ASTNode** elements;
+            int element_count;
+        } array_literal;
+        
+        // 数组访问（新添加的）
+        struct {
+            struct ASTNode* array;
+            struct ASTNode* index;
+        } array_access;
     } data;
 } ASTNode;
 
@@ -202,6 +262,19 @@ ASTNode* create_return_statement(ASTNode* argument);
 ASTNode* create_break_statement(void);
 ASTNode* create_continue_statement(void);
 ASTNode* create_empty_statement(void);
+
+// 类和对象相关函数
+ASTNode* create_class_declaration(const char* name, ASTNode* super_class, ASTNode* body);
+ASTNode* create_new_expression(ASTNode* callee, ASTNode** arguments, int argument_count);
+ASTNode* create_this_expression(void);
+ASTNode* create_super_expression(void);
+ASTNode* create_class_body(ASTNode** elements, int element_count);
+ASTNode* create_class_method(const char* kind, const char* key, ASTNode* value, int is_static);
+ASTNode* create_class_property(const char* key, ASTNode* value, int is_static);
+
+// 数组相关函数（新添加的）
+ASTNode* create_array_literal(ASTNode** elements, int element_count);
+ASTNode* create_array_access(ASTNode* array, ASTNode* index);
 
 // 工具函数
 void free_ast(ASTNode* node);
