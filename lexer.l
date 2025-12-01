@@ -178,6 +178,83 @@ re2c:define:YYCTYPE = "unsigned char";
     print_token("CONSTRUCTOR", "");
     return CONSTRUCTOR; 
 }
+// 在关键字部分添加：
+"switch" { 
+    global_scanner->pos += cursor - start;
+    print_token("SWITCH", "");
+    return SWITCH; 
+}
+"case" { 
+    global_scanner->pos += cursor - start;
+    print_token("CASE", "");
+    return CASE; 
+}
+"default" { 
+    global_scanner->pos += cursor - start;
+    print_token("DEFAULT", "");
+    return DEFAULT; 
+}
+"try" { 
+    global_scanner->pos += cursor - start;
+    print_token("TRY", "");
+    return TRY; 
+}
+"catch" { 
+    global_scanner->pos += cursor - start;
+    print_token("CATCH", "");
+    return CATCH; 
+}
+"finally" { 
+    global_scanner->pos += cursor - start;
+    print_token("FINALLY", "");
+    return FINALLY; 
+}
+
+/* 正则表达式字面量 - 简化版本 */
+"/" ([^\/\\\n] | "\\" [^])* "/" [gimy]* {
+    global_scanner->pos += cursor - start;
+    
+    // 简单提取：从第一个/到最后一个/之间的内容
+    const char* start_ptr = (const char*)start + 1;
+    const char* end_ptr = (const char*)cursor - 1;
+    
+    // 找到最后一个斜杠
+    while (end_ptr > start_ptr && *end_ptr != '/') {
+        end_ptr--;
+    }
+    
+    if (end_ptr > start_ptr) {
+        char* pattern = strndup(start_ptr, end_ptr - start_ptr);
+        char* flags = strndup(end_ptr + 1, (const char*)cursor - end_ptr - 1);
+        
+        print_token("REGEXP_LITERAL", pattern);
+        
+        // 创建正则表达式字面量节点
+        yylval.node = create_regexp_literal(pattern, flags);
+        free(pattern);
+        free(flags);
+        
+        return REGEXP_LITERAL;
+    } else {
+        fprintf(stderr, "LEXER: Invalid regexp literal\n");
+        return 0;
+    }
+}
+
+/* 模板字符串 - 简化版本，不支持嵌套表达式 */
+"`" ([^`\\] | "\\" [^])* "`" {
+    global_scanner->pos += cursor - start;
+    char *text = strndup((char*)start + 1, cursor - start - 2); // 去掉反引号
+    if (!text) {
+        fprintf(stderr, "LEXER: Failed to allocate memory for template string\n");
+        return 0;
+    }
+    print_token("TEMPLATE_STRING", text);
+    
+    // 创建字符串节点（简化处理，将模板字符串当作普通字符串）
+    yylval.str = text;  // 将所有权转移给解析器
+    return TEMPLATE_STRING;
+}
 
 /* 数字 */
 [0-9]+ {
@@ -194,6 +271,7 @@ re2c:define:YYCTYPE = "unsigned char";
 }
 
 /* 字符串 */
+/* 字符串 - 双引号 */
 ["] ([^"\\] | "\\" [^])* ["] {
     global_scanner->pos += cursor - start;
     char *text = strndup((char*)start, cursor - start);
@@ -202,13 +280,25 @@ re2c:define:YYCTYPE = "unsigned char";
         return 0;
     }
     print_token("STRING", text);
-    yylval.str = text;  // 将所有权转移给解析器
-    // 不要在这里 free(text)! 解析器会负责释放
+    yylval.str = text;
     return STRING;
 }
 
-/* 标识符 */
-[a-zA-Z_][a-zA-Z0-9_]* {
+/* 字符串 - 单引号 */
+['] ([^'\\] | "\\" [^])* ['] {
+    global_scanner->pos += cursor - start;
+    char *text = strndup((char*)start, cursor - start);
+    if (!text) {
+        fprintf(stderr, "LEXER: Failed to allocate memory for string\n");
+        return 0;
+    }
+    print_token("STRING", text);
+    yylval.str = text;
+    return STRING;
+}
+
+/* 标识符 - 支持 $ 字符 */
+[a-zA-Z_$][a-zA-Z0-9_$]* {
     global_scanner->pos += cursor - start;
     char *text = strndup((char*)start, cursor - start);
     if (!text) {
@@ -254,6 +344,18 @@ re2c:define:YYCTYPE = "unsigned char";
 "-=" { global_scanner->pos += cursor - start; print_token("MINUS_EQ", ""); return MINUS_EQ; }
 "*=" { global_scanner->pos += cursor - start; print_token("STAR_EQ", ""); return STAR_EQ; }
 "/=" { global_scanner->pos += cursor - start; print_token("SLASH_EQ", ""); return SLASH_EQ; }
+
+// 在运算符部分添加新运算符
+"=>" { 
+    global_scanner->pos += cursor - start; 
+    print_token("ARROW", ""); 
+    return ARROW; 
+}
+"..." { 
+    global_scanner->pos += cursor - start; 
+    print_token("DOT_DOT_DOT", ""); 
+    return DOT_DOT_DOT; 
+}
 
 /* 扩展的分隔符 */
 "[" { global_scanner->pos += cursor - start; print_token("LBRACKET", ""); return LBRACKET; }

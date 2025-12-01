@@ -364,6 +364,111 @@ ASTNode* create_array_access(ASTNode* array, ASTNode* index) {
     return node;
 }
 
+
+// 创建对象字面量节点
+ASTNode* create_object_literal(ASTNode** properties, int property_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_OBJECT_LITERAL;
+    node->line = 0;
+    node->column = 0;
+    node->data.object_literal.properties = properties;
+    node->data.object_literal.property_count = property_count;
+    return node;
+}
+
+// 创建对象属性节点
+ASTNode* create_property(ASTNode* key, ASTNode* value, int shorthand, int computed) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_PROPERTY;
+    node->line = 0;
+    node->column = 0;
+    node->data.property.key = key;
+    node->data.property.value = value;
+    node->data.property.shorthand = shorthand;
+    node->data.property.computed = computed;
+    return node;
+}
+
+// 创建箭头函数节点
+ASTNode* create_arrow_function(ParamList* params, ASTNode* body) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_ARROW_FUNCTION;
+    node->line = 0;
+    node->column = 0;
+    node->data.arrow_function.params = params;
+    node->data.arrow_function.body = body;
+    return node;
+}
+
+// 创建展开元素节点
+ASTNode* create_spread_element(ASTNode* argument) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_SPREAD_ELEMENT;
+    node->line = 0;
+    node->column = 0;
+    node->data.spread_element.argument = argument;
+    return node;
+}
+
+// 创建模板字符串节点
+ASTNode* create_template_literal(ASTNode** parts, int part_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_TEMPLATE_LITERAL;
+    node->line = 0;
+    node->column = 0;
+    node->data.template_literal.parts = parts;
+    node->data.template_literal.part_count = part_count;
+    return node;
+}
+
+// 创建正则表达式字面量节点
+ASTNode* create_regexp_literal(const char* pattern, const char* flags) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_REGEXP_LITERAL;
+    node->line = 0;
+    node->column = 0;
+    node->data.regexp_literal.pattern = strdup(pattern);
+    node->data.regexp_literal.flags = flags ? strdup(flags) : NULL;
+    return node;
+}
+
+// 创建函数表达式节点
+ASTNode* create_function_expression(const char* name, char** parameters, int parameter_count, ASTNode* body) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_FUNCTION_EXPRESSION;
+    node->line = 0;
+    node->column = 0;
+    node->data.function_decl.name = name ? strdup(name) : NULL;
+    node->data.function_decl.parameters = parameters;
+    node->data.function_decl.parameter_count = parameter_count;
+    node->data.function_decl.body = body;
+    return node;
+}
+
+// 创建 switch 语句节点（简化版本）
+ASTNode* create_switch_statement(ASTNode* discriminant, ASTNode* body) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_SWITCH_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    node->data.switch_stmt.discriminant = discriminant;
+    node->data.switch_stmt.body = body;
+    return node;
+}
+
+// 创建 try 语句节点（简化版本）
+ASTNode* create_try_statement(ASTNode* block, ASTNode* handler, ASTNode* finalizer) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = AST_TRY_STATEMENT;
+    node->line = 0;
+    node->column = 0;
+    node->data.try_stmt.block = block;
+    node->data.try_stmt.handler = handler;
+    node->data.try_stmt.finalizer = finalizer;
+    return node;
+}
+
+
 // 释放 AST 节点
 void free_ast(ASTNode* node) {
     if (!node) return;
@@ -528,7 +633,74 @@ void free_ast(ASTNode* node) {
             free_ast(node->data.array_access.array);
             free_ast(node->data.array_access.index);
             break;
+       
+        case AST_OBJECT_LITERAL:
+            for (int i = 0; i < node->data.object_literal.property_count; i++) {
+                free_ast(node->data.object_literal.properties[i]);
+            }
+            free(node->data.object_literal.properties);
+            break;
             
+        case AST_PROPERTY:
+            free_ast(node->data.property.key);
+            free_ast(node->data.property.value);
+            break;
+            
+        case AST_ARROW_FUNCTION:
+            // 释放参数列表
+            if (node->data.arrow_function.params) {
+                ParamList* params = node->data.arrow_function.params;
+                for (int i = 0; i < params->parameter_count; i++) {
+                    free(params->parameters[i]);
+                }
+                free(params->parameters);
+                free(params);
+            }
+            free_ast(node->data.arrow_function.body);
+            break;
+            
+        case AST_SPREAD_ELEMENT:
+            free_ast(node->data.spread_element.argument);
+            break;
+        case AST_TEMPLATE_LITERAL:
+            for (int i = 0; i < node->data.template_literal.part_count; i++) {
+                 free_ast(node->data.template_literal.parts[i]);
+            }
+            free(node->data.template_literal.parts);
+            break;
+    
+        case AST_REGEXP_LITERAL:
+            free(node->data.regexp_literal.pattern);
+            if (node->data.regexp_literal.flags) {
+                free(node->data.regexp_literal.flags);
+            }
+            break;
+        case AST_FUNCTION_EXPRESSION:
+            if (node->data.function_decl.name) {
+                free(node->data.function_decl.name);
+                   }
+            for (int i = 0; i < node->data.function_decl.parameter_count; i++) {
+                 free(node->data.function_decl.parameters[i]);
+                   }
+            free(node->data.function_decl.parameters);
+            free_ast(node->data.function_decl.body);
+            break;
+        
+        case AST_SWITCH_STATEMENT:
+            free_ast(node->data.switch_stmt.discriminant);
+            free_ast(node->data.switch_stmt.body);
+            break;
+            
+        case AST_TRY_STATEMENT:
+            free_ast(node->data.try_stmt.block);
+            if (node->data.try_stmt.handler) {
+                free_ast(node->data.try_stmt.handler);
+            }
+            if (node->data.try_stmt.finalizer) {
+                free_ast(node->data.try_stmt.finalizer);
+            }
+            break;
+
         case AST_BREAK_STATEMENT:
         case AST_CONTINUE_STATEMENT:
         case AST_EMPTY_STATEMENT:
@@ -815,9 +987,65 @@ void print_ast(ASTNode* node, int indent) {
             print_ast(node->data.array_access.index, indent + 1);
             break;
         
+        
+        case AST_OBJECT_LITERAL:
+            printf("ObjectLiteral\n");
+            for (int i = 0; i < node->data.object_literal.property_count; i++) {
+                print_ast(node->data.object_literal.properties[i], indent + 1);
+            }
+            break;
+            
+        case AST_PROPERTY:
+            printf("Property (shorthand: %s, computed: %s)\n", 
+                   node->data.property.shorthand ? "yes" : "no",
+                   node->data.property.computed ? "yes" : "no");
+            print_ast(node->data.property.key, indent + 1);
+            print_ast(node->data.property.value, indent + 1);
+            break;
+            
+        case AST_ARROW_FUNCTION:
+            printf("ArrowFunction\n");
+            // 打印参数
+            if (node->data.arrow_function.params) {
+                ParamList* params = node->data.arrow_function.params;
+                for (int i = 0; i < indent + 1; i++) printf("  ");
+                printf("Parameters:\n");
+                for (int i = 0; i < params->parameter_count; i++) {
+                    for (int j = 0; j < indent + 2; j++) printf("  ");
+                    printf("%s\n", params->parameters[i]);
+                }
+            }
+            print_ast(node->data.arrow_function.body, indent + 1);
+            break;
+            
+        case AST_SPREAD_ELEMENT:
+            printf("SpreadElement\n");
+            print_ast(node->data.spread_element.argument, indent + 1);
+            break;
+        case AST_SWITCH_STATEMENT:
+            printf("SwitchStatement\n");
+            print_ast(node->data.switch_stmt.discriminant, indent + 1);
+            print_ast(node->data.switch_stmt.body, indent + 1);
+            break;
+            
+        case AST_TRY_STATEMENT:
+            printf("TryStatement\n");
+            print_ast(node->data.try_stmt.block, indent + 1);
+            if (node->data.try_stmt.handler) {
+                for (int i = 0; i < indent + 1; i++) printf("  ");
+                printf("CatchClause\n");
+                print_ast(node->data.try_stmt.handler, indent + 2);
+            }
+            if (node->data.try_stmt.finalizer) {
+                for (int i = 0; i < indent + 1; i++) printf("  ");
+                printf("FinallyClause\n");
+                print_ast(node->data.try_stmt.finalizer, indent + 2);
+            }
+            break;
         default:
             printf("Unknown AST node type: %d\n", node->type);
             break;
     }
 
 }
+

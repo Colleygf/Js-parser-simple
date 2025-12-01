@@ -1,6 +1,12 @@
 #ifndef AST_H
 #define AST_H
 
+// 首先定义参数列表结构，这样其他结构体可以使用
+typedef struct {
+    char** parameters;
+    int parameter_count;
+} ParamList;
+
 typedef enum {
     // 表达式节点
     AST_IDENTIFIER,
@@ -15,6 +21,7 @@ typedef enum {
     AST_CALL_EXPRESSION,
     AST_MEMBER_EXPRESSION,
     AST_CONDITIONAL_EXPRESSION,
+    AST_FUNCTION_EXPRESSION,
     
     // 语句节点
     AST_PROGRAM,
@@ -39,9 +46,22 @@ typedef enum {
     AST_CLASS_METHOD,
     AST_CLASS_PROPERTY,
     
-    // 数组相关节点（新添加的）
+    // 数组相关节点
     AST_ARRAY_LITERAL,
-    AST_ARRAY_ACCESS
+    AST_ARRAY_ACCESS,
+    
+    // 新增现代语法特性节点
+    AST_OBJECT_LITERAL,
+    AST_PROPERTY,
+    AST_ARROW_FUNCTION,
+    AST_SPREAD_ELEMENT,
+    AST_TEMPLATE_LITERAL,
+    AST_REGEXP_LITERAL,
+
+    // 新增：switch 和 try 语句（放在最后避免冲突）
+    AST_SWITCH_STATEMENT,
+    AST_TRY_STATEMENT
+
 } ASTNodeType;
 
 typedef enum {
@@ -223,17 +243,75 @@ typedef struct ASTNode {
             int is_static;
         } class_property;
         
-        // 数组字面量（新添加的）
+        // 数组字面量
         struct {
             struct ASTNode** elements;
             int element_count;
         } array_literal;
         
-        // 数组访问（新添加的）
+        // 数组访问
         struct {
             struct ASTNode* array;
             struct ASTNode* index;
         } array_access;
+        
+        // 对象字面量
+        struct {
+            struct ASTNode** properties;
+            int property_count;
+        } object_literal;
+        
+        // 对象属性
+        struct {
+            struct ASTNode* key;
+            struct ASTNode* value;
+            int shorthand;
+            int computed;
+        } property;
+        
+        // 箭头函数
+        struct {
+            ParamList* params;  // 使用 ParamList 而不是 ASTNode*
+            struct ASTNode* body;
+        } arrow_function;
+        
+        // 展开元素
+        struct {
+            struct ASTNode* argument;
+        } spread_element;
+        
+        // 模板字符串
+        struct {
+            struct ASTNode** parts;
+            int part_count;
+        } template_literal;
+        
+        //正则表达式字面量
+        struct {
+            char* pattern;
+            char* flags;
+        } regexp_literal;
+
+        // 函数声明和函数表达式共用相同的数据结构
+        struct {
+            char* name;
+            char** parameters;
+            int parameter_count;
+            struct ASTNode* body;
+        } FunctionData;
+        // 新增：简单的 switch 语句结构
+        struct {
+            struct ASTNode* discriminant;
+            struct ASTNode* body;  // 使用块语句作为 body
+        } switch_stmt;
+        
+        // 新增：简单的 try 语句结构
+        struct {
+            struct ASTNode* block;
+            struct ASTNode* handler;  // catch 块
+            struct ASTNode* finalizer; // finally 块
+        } try_stmt;
+
     } data;
 } ASTNode;
 
@@ -262,6 +340,8 @@ ASTNode* create_return_statement(ASTNode* argument);
 ASTNode* create_break_statement(void);
 ASTNode* create_continue_statement(void);
 ASTNode* create_empty_statement(void);
+// 函数表达式创建函数
+ASTNode* create_function_expression(const char* name, char** parameters, int parameter_count, ASTNode* body);
 
 // 类和对象相关函数
 ASTNode* create_class_declaration(const char* name, ASTNode* super_class, ASTNode* body);
@@ -272,9 +352,22 @@ ASTNode* create_class_body(ASTNode** elements, int element_count);
 ASTNode* create_class_method(const char* kind, const char* key, ASTNode* value, int is_static);
 ASTNode* create_class_property(const char* key, ASTNode* value, int is_static);
 
-// 数组相关函数（新添加的）
+// 数组相关函数
 ASTNode* create_array_literal(ASTNode** elements, int element_count);
 ASTNode* create_array_access(ASTNode* array, ASTNode* index);
+
+// 新增现代语法特性函数
+ASTNode* create_object_literal(ASTNode** properties, int property_count);
+ASTNode* create_property(ASTNode* key, ASTNode* value, int shorthand, int computed);
+ASTNode* create_arrow_function(ParamList* params, ASTNode* body);  // 修改为 ParamList*
+ASTNode* create_spread_element(ASTNode* argument);
+ASTNode* create_template_literal(ASTNode** parts, int part_count);
+ASTNode* create_regexp_literal(const char* pattern, const char* flags);
+
+
+// 添加简单的创建函数声明
+ASTNode* create_switch_statement(ASTNode* discriminant, ASTNode* body);
+ASTNode* create_try_statement(ASTNode* block, ASTNode* handler, ASTNode* finalizer);
 
 // 工具函数
 void free_ast(ASTNode* node);

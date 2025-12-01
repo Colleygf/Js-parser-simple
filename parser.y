@@ -30,6 +30,7 @@ ASTNode* ast_root = NULL;
     ClassElementList* class_element_list;
     MethodDefinition* method_def;
     PropertyDefinition* prop_def;
+    PropertyList* property_list;
 }
 
 %token IF ELSE WHILE FOR FUNCTION VAR LET CONST RETURN BREAK CONTINUE
@@ -43,8 +44,11 @@ ASTNode* ast_root = NULL;
 %token PLUS_PLUS MINUS_MINUS PLUS_EQ MINUS_EQ STAR_EQ SLASH_EQ
 %token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET
 %token SEMICOLON COMMA DOT COLON QUESTION
+%token DOT_DOT_DOT ARROW
+%token <str> TEMPLATE_STRING
+%token <node> REGEXP_LITERAL
+%token SWITCH CASE DEFAULT TRY CATCH FINALLY
 %token ERROR
-
 
 /* 重新设计的优先级和结合性 */
 %nonassoc POSTFIX          /* 后缀运算符 */
@@ -63,8 +67,8 @@ ASTNode* ast_root = NULL;
 %left MULTIPLICATIVE       /* *, /, % */
 %right EXPONENTIAL
 %right UNARY               /* 一元运算符 +, -, !, ++, -- */
-%nonassoc CALL             /* 函数调用和成员访问 */
 %left DOT LBRACKET
+%nonassoc CALL             /* 函数调用和成员访问 */
 
 /* 为特定运算符分配优先级 */
 %right PRE_INC PRE_DEC     /* 前缀 ++ -- */
@@ -84,6 +88,8 @@ ASTNode* ast_root = NULL;
 %type <param_list> parameter_list_opt parameter_list
 %type <node> asi_semicolon
 %type <arg_list> argument_list_opt argument_list
+%type <node> function_expression
+%type <node> switch_statement try_statement
 
 // 添加类和对象相关的类型声明
 %type <node> class_declaration class_body class_element
@@ -92,11 +98,15 @@ ASTNode* ast_root = NULL;
 %type <method_def> method_definition
 %type <prop_def> property_definition
 %type <class_element_list> class_element_list_opt class_element_list
-%type <node> left_hand_side
+%type <node> left_hand_side left_hand_side_expression
 
-//数组相关
+// 数组相关
 %type <node> array_literal
-%type <arg_list> array_element_list_opt array_element_list  // 使用 arg_list 类型
+%type <arg_list> array_element_list_opt array_element_list
+
+// 新增现代语法特性
+%type <node> object_literal property arrow_function spread_element
+%type <property_list> property_list_opt property_list
 
 %start program
 
@@ -153,6 +163,8 @@ statement
     | continue_statement { $$ = $1; }
     | block_statement { $$ = $1; }
     | empty_statement { $$ = $1; }
+    | switch_statement { $$ = $1; }
+    | try_statement { $$ = $1; }
     ;
 
 /* 类声明语法规则 */
@@ -173,7 +185,7 @@ class_body
     : LBRACE class_element_list_opt RBRACE
     {
         $$ = create_class_body($2->elements, $2->element_count);
-        free($2); // 释放临时结构体，但不释放其中的元素
+        free($2);
     }
     ;
 
@@ -307,8 +319,8 @@ expression_statement
 /* ASI分号处理 */
 asi_semicolon
     : SEMICOLON { $$ = NULL; }
-    | NEWLINE { $$ = NULL; printf("PARSER: ASI - Automatically inserted semicolon\n"); }
-    | /* empty */ { $$ = NULL; printf("PARSER: ASI - Automatically inserted semicolon\n"); }
+    | NEWLINE { $$ = NULL; printf("PARSER: ASI - Automatically inserted semicolon\n"); } 
+    | /* empty */ { $$ = NULL; printf("PARSER: ASI - Automatically inserted semicolon\n"); }  
     ;
 
 /* 空语句 */
@@ -324,7 +336,7 @@ block_statement
     : LBRACE statements RBRACE
     {
         $$ = create_block_statement($2->data.program.statements, $2->data.program.statement_count);
-        free($2); // 释放临时的 program 节点，但保留其中的语句
+        free($2);
     }
     | LBRACE RBRACE
     {
@@ -395,13 +407,40 @@ variable_declaration_no_semi
     }
     ;
 
+/* 简单的 switch 语句规则 */
+switch_statement
+    : SWITCH LPAREN expression RPAREN block_statement
+    {
+        $$ = create_switch_statement($3, $5);
+    }
+    ;
+
+/* 简单的 try 语句规则 */
+try_statement
+    : TRY block_statement CATCH LPAREN IDENTIFIER RPAREN block_statement
+    {
+        // 简化处理：将 catch 参数忽略，只使用 catch 块
+        $$ = create_try_statement($2, $7, NULL);
+        free($5);
+    }
+    | TRY block_statement CATCH LPAREN IDENTIFIER RPAREN block_statement FINALLY block_statement
+    {
+        $$ = create_try_statement($2, $7, $9);
+        free($5);
+    }
+    | TRY block_statement FINALLY block_statement
+    {
+        $$ = create_try_statement($2, NULL, $4);
+    }
+    ;
+
 /* 函数声明 */
 function_declaration
     : FUNCTION IDENTIFIER LPAREN parameter_list_opt RPAREN block_statement
     {
         $$ = create_function_declaration($2, $4->parameters, $4->parameter_count, $6);
         free($2);
-        free($4); // 释放参数列表结构体，但不释放字符串（它们被转移到了 AST 节点中）
+        free($4);
     }
     ;
 
@@ -448,6 +487,20 @@ return_statement
     : RETURN expression_opt asi_semicolon
     {
         $$ = create_return_statement($2);
+    }
+    ;
+
+function_expression
+    : FUNCTION IDENTIFIER LPAREN parameter_list_opt RPAREN block_statement
+    {
+        $$ = create_function_expression($2, $4->parameters, $4->parameter_count, $6);
+        free($2);
+        free($4);
+    }
+    | FUNCTION LPAREN parameter_list_opt RPAREN block_statement
+    {
+        $$ = create_function_expression(NULL, $3->parameters, $3->parameter_count, $5);
+        free($3);
     }
     ;
 
@@ -500,10 +553,13 @@ assignment_expression
     }
     ;
 
-// 添加 left_hand_side 规则，允许标识符和成员表达式作为赋值目标
+// 扩展 left_hand_side 规则
 left_hand_side
     : IDENTIFIER { $$ = create_identifier($1); free($1); }
     | member_expression { $$ = $1; }
+    | call_expression { $$ = $1; }
+    | array_literal { $$ = $1; }
+    | object_literal { $$ = $1; }
     ;
 
 conditional_expression
@@ -612,21 +668,19 @@ unary_expression
     {
         $$ = create_unary_expression(OP_NOT, $2);
     }
-    | PLUS_PLUS unary_expression  // 前缀递增
+    | PLUS_PLUS unary_expression
     {
         $$ = create_unary_expression(OP_PRE_INC, $2);
     }
-    | MINUS_MINUS unary_expression  // 前缀递减
+    | MINUS_MINUS unary_expression
     {
         $$ = create_unary_expression(OP_PRE_DEC, $2);
     }
     ;
 
+/* 重构 postfix_expression 以避免冲突 */
 postfix_expression
-    : primary_expression { $$ = $1; }
-    | call_expression { $$ = $1; }
-    | member_expression { $$ = $1; }
-    | new_expression { $$ = $1; }
+    : left_hand_side_expression
     | postfix_expression PLUS_PLUS %prec POST_INC
     {
         $$ = create_unary_expression(OP_POST_INC, $1);
@@ -637,9 +691,15 @@ postfix_expression
     }
     ;
 
-/* 调用表达式 */
+left_hand_side_expression
+    : call_expression
+    | member_expression
+    | new_expression
+    ;
+
+/* 简化 call_expression - 移除冗余规则 */
 call_expression
-    : primary_expression LPAREN argument_list_opt RPAREN
+    : member_expression LPAREN argument_list_opt RPAREN
     {
         $$ = create_call_expression($1, $3->arguments, $3->argument_count);
         free($3);
@@ -649,30 +709,26 @@ call_expression
         $$ = create_call_expression($1, $3->arguments, $3->argument_count);
         free($3);
     }
-    | member_expression LPAREN argument_list_opt RPAREN
-    {
-        $$ = create_call_expression($1, $3->arguments, $3->argument_count);
-        free($3);
-    }
     ;
 
 /* 成员表达式 */
 member_expression
-    : primary_expression DOT IDENTIFIER
-    {
-        $$ = create_member_expression($1, create_identifier($3), 0);
-        free($3);
-    }
+    : primary_expression
     | member_expression DOT IDENTIFIER
     {
         $$ = create_member_expression($1, create_identifier($3), 0);
         free($3);
     }
-    | primary_expression LBRACKET expression RBRACKET
+    | member_expression LBRACKET expression RBRACKET
     {
         $$ = create_member_expression($1, $3, 1);
     }
-    | member_expression LBRACKET expression RBRACKET
+    | call_expression DOT IDENTIFIER  // 新增：允许在调用后接成员访问
+    {
+        $$ = create_member_expression($1, create_identifier($3), 0);
+        free($3);
+    }
+    | call_expression LBRACKET expression RBRACKET  // 新增：允许在调用后接计算成员访问
     {
         $$ = create_member_expression($1, $3, 1);
     }
@@ -685,7 +741,7 @@ new_expression
         $$ = create_new_expression($2, $4->arguments, $4->argument_count);
         free($4);
     }
-    | NEW call_expression
+    | NEW member_expression
     {
         $$ = create_new_expression($2, NULL, 0);
     }
@@ -695,6 +751,8 @@ primary_expression
     : IDENTIFIER { $$ = create_identifier($1); free($1); }
     | NUMBER { $$ = create_number($1); free($1); }
     | STRING { $$ = create_string($1); free($1); }
+    | TEMPLATE_STRING { $$ = create_string($1); free($1); }
+    | REGEXP_LITERAL { $$ = $1; }
     | TRUE { $$ = create_boolean(1); }
     | FALSE { $$ = create_boolean(0); }
     | NULL_LITERAL { $$ = create_null(); }
@@ -702,6 +760,9 @@ primary_expression
     | THIS { $$ = create_this_expression(); }
     | SUPER { $$ = create_super_expression(); }
     | array_literal { $$ = $1; }
+    | object_literal { $$ = $1; }
+    | arrow_function { $$ = $1; }
+    | function_expression { $$ = $1; }
     | LPAREN expression RPAREN { $$ = $2; }
     ;
 
@@ -721,29 +782,32 @@ argument_list_opt
 argument_list
     : expression
     {
-        $$ = malloc(sizeof(ArgList));
-        $$->arguments = malloc(sizeof(ASTNode*) * 1);
-        $$->arguments[0] = $1;
-        $$->argument_count = 1;
+        ArgList* list = malloc(sizeof(ArgList));
+        list->arguments = malloc(sizeof(ASTNode*));
+        list->arguments[0] = $1;
+        list->argument_count = 1;
+        $$ = list;
     }
     | argument_list COMMA expression
     {
-        int old_count = $1->argument_count;
-        ASTNode** new_args = malloc(sizeof(ASTNode*) * (old_count + 1));
+        ArgList* list = $1;
+        int new_count = list->argument_count + 1;
+        ASTNode** new_args = malloc(sizeof(ASTNode*) * new_count);
         
-        for (int i = 0; i < old_count; i++) {
-            new_args[i] = $1->arguments[i];
+        for (int i = 0; i < list->argument_count; i++) {
+            new_args[i] = list->arguments[i];
         }
-        new_args[old_count] = $3;
         
-        free($1->arguments);
-        $1->arguments = new_args;
-        $1->argument_count = old_count + 1;
-        $$ = $1;
+        new_args[list->argument_count] = $3;
+        
+        free(list->arguments);
+        list->arguments = new_args;
+        list->argument_count = new_count;
+        $$ = list;
     }
     ;
 
-// 添加数组字面量规则
+// 数组字面量规则 - 支持空元素
 array_literal
     : LBRACKET array_element_list_opt RBRACKET
     {
@@ -766,12 +830,30 @@ array_element_list_opt
     ;
 
 array_element_list
-    : expression
+    : /* empty */
+    {
+        $$ = malloc(sizeof(ArgList));
+        $$->arguments = malloc(sizeof(ASTNode*) * 0);  // 改为0个元素
+        $$->argument_count = 0;
+    }
+    | expression
     {
         $$ = malloc(sizeof(ArgList));
         $$->arguments = malloc(sizeof(ASTNode*) * 1);
         $$->arguments[0] = $1;
         $$->argument_count = 1;
+    }
+    | spread_element
+    {
+        $$ = malloc(sizeof(ArgList));
+        $$->arguments = malloc(sizeof(ASTNode*) * 1);
+        $$->arguments[0] = $1;
+        $$->argument_count = 1;
+    }
+    | array_element_list COMMA
+    {
+        // 暂时忽略尾部空元素
+        $$ = $1;
     }
     | array_element_list COMMA expression
     {
@@ -788,13 +870,144 @@ array_element_list
         $1->argument_count = old_count + 1;
         $$ = $1;
     }
+    | array_element_list COMMA spread_element
+    {
+        int old_count = $1->argument_count;
+        ASTNode** new_args = malloc(sizeof(ASTNode*) * (old_count + 1));
+        
+        for (int i = 0; i < old_count; i++) {
+            new_args[i] = $1->arguments[i];
+        }
+        new_args[old_count] = $3;
+        
+        free($1->arguments);
+        $1->arguments = new_args;
+        $1->argument_count = old_count + 1;
+        $$ = $1;
+    }
     ;
 
+// 对象字面量规则 - 添加计算属性支持
+object_literal
+    : LBRACE property_list_opt RBRACE
+    {
+        $$ = create_object_literal($2->properties, $2->property_count);
+        free($2);
+    }
+    ;
+
+property_list_opt
+    : /* empty */
+    {
+        $$ = malloc(sizeof(PropertyList));
+        $$->properties = malloc(sizeof(ASTNode*) * 0);
+        $$->property_count = 0;
+    }
+    | property_list
+    {
+        $$ = $1;
+    }
+    ;
+
+property_list
+    : property
+    {
+        $$ = malloc(sizeof(PropertyList));
+        $$->properties = malloc(sizeof(ASTNode*) * 1);
+        $$->properties[0] = $1;
+        $$->property_count = 1;
+    }
+    | property_list COMMA property
+    {
+        int old_count = $1->property_count;
+        ASTNode** new_props = malloc(sizeof(ASTNode*) * (old_count + 1));
+        
+        for (int i = 0; i < old_count; i++) {
+            new_props[i] = $1->properties[i];
+        }
+        new_props[old_count] = $3;
+        
+        free($1->properties);
+        $1->properties = new_props;
+        $1->property_count = old_count + 1;
+        $$ = $1;
+    }
+    ;
+
+property
+    : IDENTIFIER COLON expression
+    {
+        $$ = create_property(create_identifier($1), $3, 0, 0);
+        free($1);
+    }
+    | IDENTIFIER
+    {
+        $$ = create_property(create_identifier($1), create_identifier($1), 1, 0);
+        free($1);
+    }
+    | STRING COLON expression
+    {
+        $$ = create_property(create_string($1), $3, 0, 0);
+        free($1);
+    }
+    | LBRACKET expression RBRACKET COLON expression
+    {
+        $$ = create_property($2, $5, 0, 1);
+    }
+    ;
+
+// 统一箭头函数处理
+arrow_function
+    : LPAREN parameter_list_opt RPAREN ARROW expression
+    {
+        ASTNode* body = create_expression_statement($5);
+        $$ = create_arrow_function($2, body);
+        free($2);
+    }
+    | LPAREN parameter_list_opt RPAREN ARROW block_statement
+    {
+        $$ = create_arrow_function($2, $5);
+        free($2);
+    }
+    | IDENTIFIER ARROW expression
+    {
+        ParamList* param_list = malloc(sizeof(ParamList));
+        param_list->parameters = malloc(sizeof(char*) * 1);
+        param_list->parameters[0] = strdup($1);
+        param_list->parameter_count = 1;
+        
+        ASTNode* body = create_expression_statement($3);
+        $$ = create_arrow_function(param_list, body);
+        free($1);
+        free(param_list->parameters);
+        free(param_list);
+    }
+    | IDENTIFIER ARROW block_statement
+    {
+        ParamList* param_list = malloc(sizeof(ParamList));
+        param_list->parameters = malloc(sizeof(char*) * 1);
+        param_list->parameters[0] = strdup($1);
+        param_list->parameter_count = 1;
+        
+        $$ = create_arrow_function(param_list, $3);
+        free($1);
+        free(param_list->parameters);
+        free(param_list);
+    }
+    ;
+
+// 展开运算符规则
+spread_element
+    : DOT_DOT_DOT expression
+    {
+        $$ = create_spread_element($2);
+    }
+    ;
 
 %%
 
 void yyerror(ScannerState *scanner, const char *s) {
-    (void)scanner; // 标记为未使用，消除警告
+    (void)scanner;
     fprintf(stderr, "PARSER: Syntax error: %s\n", s);
     if (global_scanner) {
         fprintf(stderr, "PARSER: At position: %d\n", global_scanner->pos);

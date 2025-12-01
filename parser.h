@@ -35,8 +35,8 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-#ifndef YY_YY_PARSER_H_INCLUDED
-# define YY_YY_PARSER_H_INCLUDED
+#ifndef YY_YY_SRC_PARSER_H_INCLUDED
+# define YY_YY_SRC_PARSER_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -114,24 +114,34 @@ extern int yydebug;
     DOT = 315,                     /* DOT  */
     COLON = 316,                   /* COLON  */
     QUESTION = 317,                /* QUESTION  */
-    ERROR = 318,                   /* ERROR  */
-    POSTFIX = 319,                 /* POSTFIX  */
-    ASSIGNMENT = 320,              /* ASSIGNMENT  */
-    BITWISE_OR = 321,              /* BITWISE_OR  */
-    BITWISE_XOR = 322,             /* BITWISE_XOR  */
-    BITWISE_AND = 323,             /* BITWISE_AND  */
-    EQUALITY = 324,                /* EQUALITY  */
-    RELATIONAL = 325,              /* RELATIONAL  */
-    SHIFT = 326,                   /* SHIFT  */
-    ADDITIVE = 327,                /* ADDITIVE  */
-    MULTIPLICATIVE = 328,          /* MULTIPLICATIVE  */
-    EXPONENTIAL = 329,             /* EXPONENTIAL  */
-    UNARY = 330,                   /* UNARY  */
-    CALL = 331,                    /* CALL  */
-    PRE_INC = 332,                 /* PRE_INC  */
-    PRE_DEC = 333,                 /* PRE_DEC  */
-    POST_INC = 334,                /* POST_INC  */
-    POST_DEC = 335                 /* POST_DEC  */
+    DOT_DOT_DOT = 318,             /* DOT_DOT_DOT  */
+    ARROW = 319,                   /* ARROW  */
+    TEMPLATE_STRING = 320,         /* TEMPLATE_STRING  */
+    REGEXP_LITERAL = 321,          /* REGEXP_LITERAL  */
+    SWITCH = 322,                  /* SWITCH  */
+    CASE = 323,                    /* CASE  */
+    DEFAULT = 324,                 /* DEFAULT  */
+    TRY = 325,                     /* TRY  */
+    CATCH = 326,                   /* CATCH  */
+    FINALLY = 327,                 /* FINALLY  */
+    ERROR = 328,                   /* ERROR  */
+    POSTFIX = 329,                 /* POSTFIX  */
+    ASSIGNMENT = 330,              /* ASSIGNMENT  */
+    BITWISE_OR = 331,              /* BITWISE_OR  */
+    BITWISE_XOR = 332,             /* BITWISE_XOR  */
+    BITWISE_AND = 333,             /* BITWISE_AND  */
+    EQUALITY = 334,                /* EQUALITY  */
+    RELATIONAL = 335,              /* RELATIONAL  */
+    SHIFT = 336,                   /* SHIFT  */
+    ADDITIVE = 337,                /* ADDITIVE  */
+    MULTIPLICATIVE = 338,          /* MULTIPLICATIVE  */
+    EXPONENTIAL = 339,             /* EXPONENTIAL  */
+    UNARY = 340,                   /* UNARY  */
+    CALL = 341,                    /* CALL  */
+    PRE_INC = 342,                 /* PRE_INC  */
+    PRE_DEC = 343,                 /* PRE_DEC  */
+    POST_INC = 344,                /* POST_INC  */
+    POST_DEC = 345                 /* POST_DEC  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -140,7 +150,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 24 "parser.y"
+#line 24 "src/parser.y"
 
     char* str;
     ASTNode* node;
@@ -150,8 +160,9 @@ union YYSTYPE
     ClassElementList* class_element_list;
     MethodDefinition* method_def;
     PropertyDefinition* prop_def;
+    PropertyList* property_list;
 
-#line 155 "parser.h"
+#line 166 "src/parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -166,4 +177,4 @@ extern YYSTYPE yylval;
 int yyparse (ScannerState *scanner);
 
 
-#endif /* !YY_YY_PARSER_H_INCLUDED  */
+#endif /* !YY_YY_SRC_PARSER_H_INCLUDED  */
